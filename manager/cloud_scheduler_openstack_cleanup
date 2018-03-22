@@ -1,0 +1,74 @@
+#!/bin/bash
+
+source /home/canfarcs/.bash_aliases
+
+export PATH="/usr/local/bin:${PATH}"
+VM_PREFIX="canfar-"
+CLOUD_NAME="canfar"
+
+log_file="/var/log/cloudcleanup.log"
+
+# loop on VM instance names found on nova
+for vm_name in $(nova list 2> /dev/null | grep "^|" | grep -v ID | grep ${VM_PREFIX} | awk '{print $4}'); do
+    
+    # check if cloud scheduler is tracking the VM
+    vm_cs=$(cloud_status -m | grep ${vm_name} | awk '{print $2}')
+    [ -n "${vm_cs}" ] && continue
+
+    echo "Lost instance ${vm_name} from cloud_scheduler"
+    vm_to_delete="${vm_to_delete} ${vm_name}"
+
+    # if vm is still running condor, shutdown daemons peacefully first
+    vm_worker=$(condor_status -l -attributes Name | awk '{print $3}' | sed -e 's/"//g' | grep ${vm_name})
+    [ -z "${vm_worker}" ] && continue
+
+    condor_off -peaceful -name ${vm_worker} -startd
+    # get startd and master IPs
+    addr=$(condor_status ${vm_worker} -l | grep MyAddress | head -n1 | sed  -e 's/"//g')
+    if  [ -n "${addr}" ]; then 
+	echo " > shutdown startd daemon ${startd_addr} on ${vm_name}"
+	condor_off -peaceful -addr ${addr} -startd
+    fi
+    addr=$(condor_status ${vm_worker} -l -master | grep MasterIpAddr | sed -e 's/"//g')
+    if  [ -n "${addr}" ]; then 
+	echo " > shutdown master daemon ${addr} on ${vm_name}"
+	condor_off -peaceful -addr ${addr} -master
+    fi
+done
+
+# terminate all instances found on nova but not on cloud scheduler
+if [ -n "${vm_to_delete}" ]; then
+    echo "Terminating the $(echo ${vm_to_delete} | wc -w) instances lost from cloud scheduler"
+    nova delete ${VM_DELETE} 2> /dev/null
+fi
+
+# work around cloud scheduler threaded clean-up dead-lock
+bad_vms="$(cloud_status -m | grep Retiring | awk '{print $1}')"
+if [ -n "${bad_vms}" ]; then
+    for vm_cs in ${bad_vms}; do
+	echo "Terminating VM ${vm_cs} in Retiring state"
+	cloud_admin -k -n ${vm_cs} -c ${CLOUD_NAME}
+    done
+fi
+
+# work around condor getting lost but VM still up
+#vm_workers="$(condor_q -run -nobatch | awk '{print $6}' | grep ${VM_PREFIX} | sed -e 's/^slot1@//')"
+#cmd=""
+#for vm_worker in ${vm_workers}; do
+#    cmd="${cmd} | grep -v ${vm_worker}"
+#done
+#bad_vms="$(cloud_status -m ${cmd} | grep -v Total | grep -v ID | awk '{print $1}')"
+#for vm_cs in ${bad_vms}; do
+#    echo "Terminating VM ${vm_cs} in HTCondor stalled state"
+#    cloud_admin -k -n ${vm_cs} -c ${CLOUD_NAME}
+#done
+
+for vm_name in $(nova list --status ERROR --minimal 2> /dev/null | tail -n +4 | head -n -1 | awk '{print $4}'); do
+    echo "Terminating VM instance ${vm_name} in ERROR state"
+    vm_cs=$(cloud_status -m | grep ${vm_name} | awk '{print $1}')
+    if [ -n "${vm_cs}" ]; then
+	cloud_admin -k -n ${vm_cs} -c ${CLOUD_NAME}
+    else
+	nova delete ${vm_name} 2> /dev/null
+    fi
+done
