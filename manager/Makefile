@@ -1,7 +1,7 @@
 
 prefix ?= /usr/local
 bindir = $(prefix)/bin
-datadir = $(prefix)/share/canfar
+datadir = $(prefix)/share/canfarproc
 
 INSTALL = install -c
 INSTALL_SCRIPT = $(INSTALL)
@@ -9,8 +9,9 @@ INSTALL_DATA = $(INSTALL) -m 644
 MKDIR_P = mkdir -p
 RM = rm -f
 
-SCRIPTS = canfar_submit canfar_job_validate cansub
-DATA = canfar_batch_setup.bash canfarcs_id_rsa.pub
+SCRIPTS = canfar_submit canfar_job_validate cansub canfar_cloud_cleanup canfar_inject_cert
+DATA = canfar_batch_init canfar_batch_prepare canfar_condor_cert_hook canfar_cc_rsa.pub
+
 
 install: 
 	@$(MKDIR_P) $(DESTDIR)$(bindir) ; \
