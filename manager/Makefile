@@ -10,7 +10,7 @@ MKDIR_P = mkdir -p
 RM = rm -f
 
 SCRIPTS = canfar_submit canfar_job_validate cansub canfar_cloud_cleanup canfar_inject_cert
-DATA = canfar_condor_cert_hook canfar_cc_rsa.pub
+DATA = canfar_condor_cert_hook canfar_batch_init canfar_batch_rsa.pub
 
 
 install: 

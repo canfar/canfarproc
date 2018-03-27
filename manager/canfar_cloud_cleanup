@@ -1,12 +1,9 @@
 #!/bin/bash
 
-source /home/canfarcs/.bash_aliases
-
-export PATH="/usr/local/bin:${PATH}"
 VM_PREFIX="canfar-"
 CLOUD_NAME="canfar"
 
-log_file="/var/log/cloudcleanup.log"
+export PATH="/usr/local/bin:${PATH}"
 
 # loop on VM instance names found on nova
 for vm_name in $(nova list 2> /dev/null | grep "^|" | grep -v ID | grep ${VM_PREFIX} | awk '{print $4}'); do

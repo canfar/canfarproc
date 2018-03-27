@@ -78,18 +78,18 @@ canfar_check_cert() {
 # if key exists: replace key=oldval with key=oldval,newval
 # if not: append key=newval at the end of the file
 condor_keyval_replace_or_append_many() {
-    local subfile=$1 key=$2 val=$3
+    local key=$1 val=$2 subfile=$3
     sed -e "/^[[:space:]]*${key}/{h;s|=\(.*\)|= \1,${val}|I};\${x;/^\$/{s||${key} = ${val}|;H};x}" \
-	-i ${subfile}
+	${subfile}
 }
 
 # Replace key = value in condor submission files
 # if key exists: replace key=oldval with key=newval
 # if not: append key=newval at the end of the file
 condor_keyval_replace_or_append() {
-    local subfile=$1 key=$2 val=$3
+    local key=$1 val=$2 subfile=$3
     sed -e "/^[[:space:]]*${key}/{h;s|=.*|= ${val}|I};\${x;/^\$/{s||${key} = ${val}|;H};x}" \
-	-i ${subfile}
+	${subfile}
 }
 
 # Make sure that a condor submission transfers and put proxy cert in proper directory.
@@ -126,14 +126,18 @@ subfile=$1
 canfar_check_cert
 
 condor_keyval_replace_or_append \
-    ${subfile} "should_transfer_files" "yes"
+    "should_transfer_files" "yes" \
+    ${subfile} 
 condor_keyval_replace_or_append_many \
-    ${subfile} "transfer_input_files" "${CANFAR_CERT_PATH},${CANFAR_CERT_HOOK_SCRIPT}"
+    "transfer_input_files" "${CANFAR_CERT_PATH},${CANFAR_CERT_HOOK_SCRIPT}" \
+    ${subfile} 
 
 # condor will only transfer files to the exec directory
 # use a hook to move the cert to a user's ~/.ssl/
 # mandatory double quotes for +PreCmd and +PreArguments
 condor_keyval_replace_or_append \
-    ${subfile} "+PreCmd" "\"$(basename ${CANFAR_CERT_HOOK_SCRIPT})\""
+    "+PreCmd" "\"$(basename ${CANFAR_CERT_HOOK_SCRIPT})\"" \
+    ${subfile} 
 condor_keyval_replace_or_append \
-    ${subfile} "+PreArguments" "\"$(basename ${CANFAR_CERT_PATH})\""
+    "+PreArguments" "\"$(basename ${CANFAR_CERT_PATH})\"" \
+    ${subfile} 
