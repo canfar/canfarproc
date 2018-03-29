@@ -31,7 +31,10 @@ logging.disable(logging.CRITICAL)
 param_disallow = dict(
     [ ['Requirements', 'Generated from image'],
       ['+VMAMI', 'Generated from image'],
-      ['+VMInstanceType', 'Generated from flavor'] ] )
+      ['+VMInstanceType', 'Generated from flavor'],
+      ['+PreCmd', 'Used to pass proxy cert'],
+      ['+PreArguments', 'Used to pass proxy cert']      
+    ] )
 
 # OpenStack auth configuration / defaults.
 # Take OS_* variables if provided (with following defaults).
@@ -49,8 +52,9 @@ auth = {'username':'',
 
 # where to find some common inputs
 sharepath = '/usr/local/share/canfarproc'
-canfarcspubkey = sharepath+'/canfar_batch_rsa.pub'
-confscript = sharepath+'/canfar_batch_init'
+canfarcspubkey = sharepath + '/canfar_batch_rsa.pub'
+confscript = sharepath + '/canfar_batch_init'
+certhook = sharepath + '/canfar_condor_cert_hook'
 
 # Location for per-user cloud config YAML files. The actual file name
 # is a uuid to avoid clashes (since these are user- and job-specific)
@@ -58,14 +62,14 @@ confdir = '/var/cache/canfarproc'
 
 # Subroutine to generate a cloud config file. This is copied almost verbatim
 # from make_cloud_config, and should be moved to a module at a later point.
-def make_cloud_config(inputscript,pubkey,output_yml,submitter,
+def make_cloud_config(inputscript,pubkey,output_yml,image_user,
                       image_name=None):
     # Generate a cloud config file (YAML) that performs the following
     # operations:
     # - inject a public ssh key into the generic user account
     # - write and execute the cloud scheduler configuration script
     #
-    # - image_name and submitter are used by canfar_batch_init to
+    # - image_name and image_user are used by canfar_batch_init to
     #   set the VMType. If not specified defaults to $HOSTNAME and $USER 
 
     # the full output path name of the configuration script when copied
@@ -127,6 +131,7 @@ try:
     parser.add_argument('jobscript',help='Condor job execution script')
     parser.add_argument('image_id',help='VM image ID for job')
     parser.add_argument('flavor_id',help='hardware flavor ID')
+    parser.add_argument('--cert',help='cadc proxy cert path')
     parser.add_argument('--outfile',
                         help='write new jobfile instead of printing to stdout')
     parser.add_argument('--os-username',
@@ -166,6 +171,16 @@ try:
             sys.exit(1)
     conf_yml = '%s/%s_%s.yml' % (confdir,submitter,uuid.uuid4())
 
+    if args.cert:
+        certpath = args.cert
+    else:
+        if os.(''):
+            certpath = 
+            submitter = os.environ['USER']
+        else:
+            print "Error obtaining user name from $USER"
+            sys.exit(1)
+            
     jobfile = args.jobfile
     jobscript = args.jobscript
 
@@ -225,6 +240,21 @@ flavor_id: %s''' % (auth['auth_url'],auth['username'],auth['tenant_name'],auth['
                            'Executable = %s' % jobscript,
                            jobfile_data,flags=re.MULTILINE)
 
+    # Add user cert and hook script to be transfered
+
+    jobfile_data, c =  re.sub('^\s*should_transfer_files\s*=.*',
+                              'should_transfer_files = YES',
+                              jobfile_data, flags=re.MULTILINE)
+    if (c == 0):
+        jobfile_data = jobfile_data + 'should_transfer_files = YES'        
+
+    jobfile_data, c =  re.sub('^\s*transfer_input_files\s*=\(.*\)',
+                              'transfer_input_files = \1, %s, %s' % certpath , certhook,
+                              jobfile_data, flags=re.MULTILINE)
+    
+    if (c == 0):
+        jobfile_data = jobfile_data + 'transfer_input_files = %s, %s' % certpath , certhook
+        
     # determine the name of the image from its UUID, and the name
     # of the tenant that owns it. First we get a glance client to
     # get the name of the given image ID. We then query that image's
@@ -282,12 +312,17 @@ except Exception as E:
             "Check for errors in your credentials."
     sys.exit(1)
 
+
+    certpath = os.path.isfile(jobscript):
+    
 jobfile = '''Requirements = VMType =?= "%s" && Arch == "x86_64"
 +VMAMI          = "canfar:%s"
 +VMInstanceType = "canfar:%s"
 +VMAMIConfig    = "%s"
 +VMKeepAlive    = 3
-''' % (vmtype,image_id,flavor_id,conf_yml) + jobfile_data
++PreCmd         = "canfar_condor_cert_hook"
++PreArguments   = "%s"
+''' % (vmtype,image_id,flavor_id,conf_yml, os.path.basename(certpath)) + jobfile_data
 
 if args.outfile:
     try:

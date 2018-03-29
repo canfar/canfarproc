@@ -95,6 +95,7 @@ VM_IMAGE_AND_FLAVOR_IDS=$(cansub ${JOB_FILE} ${VM_IMAGE} ${VM_FLAVOR} --nopost) 
     || die "failed to share image and determine image/flavor IDs"
 
 # big string for the job
-JOB=$(canfar_job_validate ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS}) || die "failed to validate job with submission file: ${JOB_FILE}"
+JOB=$(canfar_job_validate ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS}) \
+    || die "failed to validate job with submission file: ${JOB_FILE}"
 
 echo "${JOB}" | condor_submit || die "failed to submit job to queue"
