@@ -247,10 +247,11 @@ flavor_id: %s''' % (auth['auth_url'],auth['username'],auth['tenant_name'],auth['
     if (c == 0):
         jobfile_data = jobfile_data + 'should_transfer_files = YES'
 
-    jobfile_data,c =  re.subn('^\s*transfer_input_files\s*=\(.*\)',
-                              'transfer_input_files = \1, %s, %s' % (certpath,certhook), jobfile_data, flags=re.MULTILINE)
+    jobfile_data,c =  re.subn('^\s*transfer_input_files\s*=(.*)',
+                              r'transfer_input_files = \1, %s, %s' % (certpath,certhook),
+                              jobfile_data, flags=re.MULTILINE)
     if (c == 0):
-        jobfile_data = jobfile_data + 'transfer_input_files = %s, %s' % (certpath,certhook)
+        jobfile_data = 'transfer_input_files = %s, %s\n' % (certpath,certhook) + jobfile_data
 
     # determine the name of the image from its UUID, and the name
     # of the tenant that owns it. First we get a glance client to
