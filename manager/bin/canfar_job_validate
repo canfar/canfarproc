@@ -62,7 +62,7 @@ confdir = '/var/cache/canfarproc'
 
 # Subroutine to generate a cloud config file. This is copied almost verbatim
 # from make_cloud_config, and should be moved to a module at a later point.
-def make_cloud_config(inputscript,pubkey,output_yml,image_user,
+def make_cloud_config(inputscript,pubkey,output_yml,image_user=None,
                       image_name=None):
     # Generate a cloud config file (YAML) that performs the following
     # operations:
@@ -98,9 +98,9 @@ runcmd:
     if image_name:
         script_arguments = script_arguments + \
                            ", '--image-name=\"%s\"'" % image_name
-    if submitter:
+    if image_user:
         script_arguments = script_arguments + \
-                           ", '--user=\"%s\"'" % submitter
+                           ", '--user=\"%s\"'" % image_user
 
     end_text = '''
       EOF
@@ -142,8 +142,8 @@ try:
     parser.add_argument('--os-tenant-id',
                         help='tenant id if OS_TENANT_ID not set')
     parser.add_argument('--os-auth-url',help='auth URL if OS_AUTH_URL not set')
-    parser.add_argument('--submitter',
-                        help='Set submitter for YAML (default $USER)')
+    parser.add_argument('--image-user',
+                        help='Set user for VM image (default: automatic)')
     parser.add_argument('-v','--verbose',default=False,
                         help='verbose output',action='store_true')
 
@@ -161,25 +161,24 @@ try:
             raise Exception("Neither --%s nor %s set in the environment" \
                 % (argname.replace('_','-'), osvar))
 
-    if args.submitter:
-        submitter = args.submitter
-    else:
-        try:
-            submitter = os.environ['USER']
-        except:
-            print "Error obtaining user name from $USER"
-            sys.exit(1)
+    if args.image_user:
+        image_user = args.image_user
+
+    # submitter is only to keep track on a local yml file
+    try:
+        submitter = os.environ['USER']
+    except:
+        raise Exception('Error obtaining submitter name from current user')
+
     conf_yml = '%s/%s_%s.yml' % (confdir,submitter,uuid.uuid4())
 
     if args.cert:
         certpath = args.cert
     else:
-        if os.(''):
-            certpath = 
-            submitter = os.environ['USER']
-        else:
-            print "Error obtaining user name from $USER"
-            sys.exit(1)
+        certpath = os.path.join(os.environ['USER'],'.ssl','cadcproxy.pem')
+
+    if not os.path.isfile(certpath):
+        raise Exception("Error obtaining certificate: %s" % certpath)
             
     jobfile = args.jobfile
     jobscript = args.jobscript
@@ -241,7 +240,6 @@ flavor_id: %s''' % (auth['auth_url'],auth['username'],auth['tenant_name'],auth['
                            jobfile_data,flags=re.MULTILINE)
 
     # Add user cert and hook script to be transfered
-
     jobfile_data, c =  re.sub('^\s*should_transfer_files\s*=.*',
                               'should_transfer_files = YES',
                               jobfile_data, flags=re.MULTILINE)
@@ -251,10 +249,9 @@ flavor_id: %s''' % (auth['auth_url'],auth['username'],auth['tenant_name'],auth['
     jobfile_data, c =  re.sub('^\s*transfer_input_files\s*=\(.*\)',
                               'transfer_input_files = \1, %s, %s' % certpath , certhook,
                               jobfile_data, flags=re.MULTILINE)
-    
     if (c == 0):
         jobfile_data = jobfile_data + 'transfer_input_files = %s, %s' % certpath , certhook
-        
+
     # determine the name of the image from its UUID, and the name
     # of the tenant that owns it. First we get a glance client to
     # get the name of the given image ID. We then query that image's
@@ -297,12 +294,12 @@ flavor_id: %s''' % (auth['auth_url'],auth['username'],auth['tenant_name'],auth['
         print "config shell script = %s" % confscript
         print "image_name          = %s" % image_name
         print "image_tenant_name   = %s" % image_tenant_name
-        print "submitter           = %s" % submitter
+        print "image_user          = %s" % image_user
         print "output YAML         = %s" % conf_yml
 
     vmtype = '%s:%s'%(image_tenant_name,image_name)
 
-    make_cloud_config(confscript,canfarcspubkey,conf_yml,submitter,
+    make_cloud_config(confscript,canfarcspubkey,conf_yml,image_user=image_user,
                       image_name=vmtype)
 
 except Exception as E:
