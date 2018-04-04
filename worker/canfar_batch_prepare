@@ -3,7 +3,7 @@
 # Shell script to prepare a VM for batch at interactive time
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.1.1
+EXEC_VERSION=0.1.2
 
 msg() {
     echo " >> ${EXEC_NAME}: $1"
@@ -17,8 +17,8 @@ die() {
 usage() {
     echo $"Usage: ${EXEC_NAME}
 Prepare a VM for batch on CANFAR:
-1. Setup a workspace on an ephemeral partition to work on while interactive (/mnt/work)
-2. Install condor if VM is either RPM or DEB based.
+1. Install condor if VM is either RPM or DEB based
+2. Setup scratch space (/mnt/scratch) to test
 "
     exit
 }
@@ -26,14 +26,17 @@ Prepare a VM for batch on CANFAR:
 canfar_install_condor_rpm() {
     msg "rpm/yum based distribution detected"
     local rh_vers=$(rpm -qa \*-release | grep -Ei "redhat|centos|sl" | cut -d "-" -f3)
+    [[ ${EUID} -ne 0 ]] || die "you must run this script as root or with sudo"
     if [[ -n ${rh_vers} ]]; then
 	msg "distribution version ${rh_vers} detected, adding condor yum repo"
-	rpm --import https://research.cs.wisc.edu/htcondor/yum/RPM-GPG-KEY-HTCondor
+	rpm --import https://research.cs.wisc.edu/htcondor/yum/RPM-GPG-KEY-HTCondor || die "failed to import HTCondor GPG key"
 	curl -sL https://research.cs.wisc.edu/htcondor/yum/repo.d/htcondor-stable-rhel${rh_vers}.repo \
 	     -o /etc/yum.repos.d/htcondor-stable-rhel${rh_vers}.repo
+	yum update -y
     else
 	msg "non-RHEL distribution, assuming condor is already available from current repos"
     fi
+    msg "installing condor..."
     yum -y install condor || die "failed to install condor"
     # on CentOS 7 /var/lock/condor is incorrectly owned by root
     if condor_version | grep -q RedHat_7; then
@@ -47,6 +50,7 @@ canfar_install_condor_deb() {
     msg "apt/dpkg distribution detected assume debian wheezy"
     export DEBIAN_FRONTEND=noninteractive
     local condordeb="deb http://research.cs.wisc.edu/htcondor/debian/stable/ wheezy contrib"
+    [[ ${EUID} -ne 0 ]] || die "you must run this script as root or with sudo"
     if [[ -d /etc/apt/sources.list.d ]]; then
 	echo "${condordeb}" > /etc/apt/sources.list.d/condor.list
     else
@@ -70,10 +74,10 @@ canfar_install_condor() {
     # determine os
     if yum --version > /dev/null 2>&1 ; then
 	canfar_install_condor_rpm
-    elif apt-get --version > /dev/null 2>&1 ; then
+    elif apt-get --version > /dev/null 2>&1 || apt --version > /dev/null 2>&1; then
 	canfar_install_condor_deb
     else
-	die "unable to detect distribution type, you must install it yourself"
+	die "unable to detect distribution type, you must install HTCondor yourself"
     fi
 }
 
@@ -82,6 +86,7 @@ canfar_setup_workdir() {
     local workdir="${ephemdir}/work"
 
     msg "setting up working ephemeral directory on ${workdir}"
+    [[ ${EUID} -ne 0 ]] || die "you must run this script as root or with sudo"
     if ! mount | grep -q ${ephemdir}; then 
 	msg "ephemeral partition not mounted trying"
 	mkdir -p ${ephemdir}
