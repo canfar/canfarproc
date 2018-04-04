@@ -1,7 +1,7 @@
 
 prefix ?= /usr/local
 bindir = $(prefix)/bin
-datadir = $(prefix)/share/canfarproc
+datadir = $(prefix)/share/canfar
 
 INSTALL = install -c
 INSTALL_SCRIPT = $(INSTALL)

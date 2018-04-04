@@ -51,14 +51,14 @@ auth = {'username':'',
         'auth_url':''}
 
 # where to find some common inputs
-sharepath = '/usr/local/share/canfarproc'
+sharepath = '/usr/local/share/canfar'
 canfarcspubkey = sharepath + '/canfar_batch_rsa.pub'
 confscript = sharepath + '/canfar_batch_init'
 certhook = sharepath + '/canfar_condor_cert_hook'
 
 # Location for per-user cloud config YAML files. The actual file name
 # is a uuid to avoid clashes (since these are user- and job-specific)
-confdir = '/var/cache/canfarproc'
+confdir = '/var/cache/canfar'
 
 # Subroutine to generate a cloud config file. This is copied almost verbatim
 # from make_cloud_config, and should be moved to a module at a later point.
@@ -161,6 +161,7 @@ try:
             raise Exception("Neither --%s nor %s set in the environment" \
                 % (argname.replace('_','-'), osvar))
 
+    image_user=None
     if args.image_user:
         image_user = args.image_user
 
@@ -175,10 +176,10 @@ try:
     if args.cert:
         certpath = args.cert
     else:
-        certpath = os.path.join(os.environ['USER'],'.ssl','cadcproxy.pem')
+        certpath = os.path.join(os.environ['HOME'],'.ssl','cadcproxy.pem')
 
     if not os.path.isfile(certpath):
-        raise Exception("Error obtaining certificate: %s" % certpath)
+        raise Exception("obtaining certificate: %s" % certpath)
             
     jobfile = args.jobfile
     jobscript = args.jobscript
@@ -240,17 +241,16 @@ flavor_id: %s''' % (auth['auth_url'],auth['username'],auth['tenant_name'],auth['
                            jobfile_data,flags=re.MULTILINE)
 
     # Add user cert and hook script to be transfered
-    jobfile_data, c =  re.sub('^\s*should_transfer_files\s*=.*',
+    jobfile_data,c =  re.subn('^\s*should_transfer_files\s*=.*',
                               'should_transfer_files = YES',
                               jobfile_data, flags=re.MULTILINE)
     if (c == 0):
-        jobfile_data = jobfile_data + 'should_transfer_files = YES'        
+        jobfile_data = jobfile_data + 'should_transfer_files = YES'
 
-    jobfile_data, c =  re.sub('^\s*transfer_input_files\s*=\(.*\)',
-                              'transfer_input_files = \1, %s, %s' % certpath , certhook,
-                              jobfile_data, flags=re.MULTILINE)
+    jobfile_data,c =  re.subn('^\s*transfer_input_files\s*=\(.*\)',
+                              'transfer_input_files = \1, %s, %s' % (certpath,certhook), jobfile_data, flags=re.MULTILINE)
     if (c == 0):
-        jobfile_data = jobfile_data + 'transfer_input_files = %s, %s' % certpath , certhook
+        jobfile_data = jobfile_data + 'transfer_input_files = %s, %s' % (certpath,certhook)
 
     # determine the name of the image from its UUID, and the name
     # of the tenant that owns it. First we get a glance client to
@@ -310,8 +310,6 @@ except Exception as E:
     sys.exit(1)
 
 
-    certpath = os.path.isfile(jobscript):
-    
 jobfile = '''Requirements = VMType =?= "%s" && Arch == "x86_64"
 +VMAMI          = "canfar:%s"
 +VMInstanceType = "canfar:%s"
