@@ -51,7 +51,8 @@ auth = {'username':'',
         'auth_url':''}
 
 # where to find some common inputs
-sharepath = '/usr/local/share/canfar'
+prefix = '/usr/local'
+sharepath = prefix + '/share/canfar'
 canfarcspubkey = sharepath + '/canfar_batch_rsa.pub'
 confscript = sharepath + '/canfar_batch_init'
 certhook = sharepath + '/canfar_condor_cert_hook'
@@ -74,7 +75,7 @@ def make_cloud_config(inputscript,pubkey,output_yml,image_user=None,
 
     # the full output path name of the configuration script when copied
     # into the VM
-    outputscript = '/tmp/' + os.path.basename(inputscript)
+    outputscript = prefix + '/bin/' + os.path.basename(inputscript)
 
     # load script content
     script_content_raw = open(inputscript,'r').readlines()
@@ -91,7 +92,7 @@ ssh_authorized_keys:
 
 runcmd:
   - |
-      cat - > %s <<'EOF'
+      cat - > %s <<'END_OF_SCRIPT'
 ''' % (pubkey_content, outputscript)
 
     script_arguments = ""
@@ -103,7 +104,7 @@ runcmd:
                            ", '--user=\"%s\"'" % image_user
 
     end_text = '''
-      EOF
+      END_OF_SCRIPT
   - [ 'chmod', '0755', '%s' ]
   - [ '%s'%s ]
 ''' % (outputscript,outputscript,script_arguments)
