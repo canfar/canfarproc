@@ -55,7 +55,7 @@ prefix = '/usr/local'
 sharepath = prefix + '/share/canfar'
 canfarcspubkey = sharepath + '/canfar_batch_rsa.pub'
 confscript = sharepath + '/canfar_batch_init'
-certhook = sharepath + '/canfar_condor_cert_hook'
+certscript = sharepath + '/canfar_batch_cert'
 
 # Location for per-user cloud config YAML files. The actual file name
 # is a uuid to avoid clashes (since these are user- and job-specific)
@@ -63,23 +63,27 @@ confdir = '/var/cache/canfar'
 
 # Subroutine to generate a cloud config file. This is copied almost verbatim
 # from make_cloud_config, and should be moved to a module at a later point.
-def make_cloud_config(inputscript,pubkey,output_yml,image_user=None,
-                      image_name=None):
+def make_cloud_config(conf_script, pubkey, output_yml, cert_script,
+                      image_user=None, image_name=None):
     # Generate a cloud config file (YAML) that performs the following
     # operations:
     # - inject a public ssh key into the generic user account
     # - write and execute the cloud scheduler configuration script
-    #
     # - image_name and image_user are used by canfar_batch_init to
     #   set the VMType. If not specified defaults to $HOSTNAME and $USER 
 
     # the full output path name of the configuration script when copied
     # into the VM
-    outputscript = prefix + '/bin/' + os.path.basename(inputscript)
-
+    conf_script_path ='/usr/bin/' + os.path.basename(conf_script)
+    cert_script_path ='/usr/bin/' + os.path.basename(cert_script)
+    
     # load script content
-    script_content_raw = open(inputscript,'r').readlines()
-    script_content = "".join("      "+l for l in script_content_raw)
+    conf_script_content_raw = open(conf_script,'r').readlines()
+    conf_script_content = "".join("      "+l for l in conf_script_content_raw)
+
+    # load cert script content
+    cert_script_content_raw = open(cert_script,'r').readlines()
+    cert_script_content = "".join("      "+l for l in cert_script_content_raw)
 
     # load canfarcs pubkey
     pubkey_content = open(pubkey,'r').read().strip()
@@ -93,25 +97,33 @@ ssh_authorized_keys:
 runcmd:
   - |
       cat - > %s <<'END_OF_SCRIPT'
-''' % (pubkey_content, outputscript)
+''' % (pubkey_content, conf_script_path)
 
-    script_arguments = ""
+    conf_script_args = ""
     if image_name:
-        script_arguments = script_arguments + \
+        conf_script_args = conf_script_args + \
                            ", '--image-name=\"%s\"'" % image_name
     if image_user:
-        script_arguments = script_arguments + \
+        conf_script_args = conf_script_args + \
                            ", '--user=\"%s\"'" % image_user
+
+    mid_text = '''
+      END_OF_SCRIPT
+  - [ 'chmod', '0755', '%s' ]
+  - [ '%s'%s ]
+  - cat - > %s <<'END_OF_SCRIPT'
+''' % (conf_script_path, conf_script_path, conf_script_args, cert_script_path)
 
     end_text = '''
       END_OF_SCRIPT
   - [ 'chmod', '0755', '%s' ]
-  - [ '%s'%s ]
-''' % (outputscript,outputscript,script_arguments)
+''' % (cert_script_path)
 
     f = open(output_yml,'w')
     f.write(start_text)
-    f.write(script_content)
+    f.write(conf_script_content)
+    f.write(mid_text)
+    f.write(cert_script_content)
     f.write(end_text)
     f.close()
 
@@ -249,10 +261,10 @@ flavor_id: %s''' % (auth['auth_url'],auth['username'],auth['tenant_name'],auth['
         jobfile_data = jobfile_data + 'should_transfer_files = YES'
 
     jobfile_data,c =  re.subn('^\s*transfer_input_files\s*=(.*)',
-                              r'transfer_input_files = \1, %s, %s' % (certpath,certhook),
+                              r'transfer_input_files = \1, %s' % certpath,
                               jobfile_data, flags=re.MULTILINE)
     if (c == 0):
-        jobfile_data = 'transfer_input_files = %s, %s\n' % (certpath,certhook) + jobfile_data
+        jobfile_data = 'transfer_input_files = %s, %s\n' % certpath + jobfile_data
 
     # determine the name of the image from its UUID, and the name
     # of the tenant that owns it. First we get a glance client to
@@ -301,7 +313,9 @@ flavor_id: %s''' % (auth['auth_url'],auth['username'],auth['tenant_name'],auth['
 
     vmtype = '%s:%s'%(image_tenant_name,image_name)
 
-    make_cloud_config(confscript,canfarcspubkey,conf_yml,image_user=image_user,
+    make_cloud_config(confscript,canfarcspubkey,conf_yml,
+                      certscript,
+                      image_user=image_user,
                       image_name=vmtype)
 
 except Exception as E:
@@ -317,9 +331,9 @@ jobfile = '''Requirements = VMType =?= "%s" && Arch == "x86_64"
 +VMInstanceType = "canfar:%s"
 +VMAMIConfig    = "%s"
 +VMKeepAlive    = 3
-+PreCmd         = "canfar_condor_cert_hook"
++PreCmd         = "%s"
 +PreArguments   = "%s"
-''' % (vmtype,image_id,flavor_id,conf_yml, os.path.basename(certpath)) + jobfile_data
+''' % (vmtype,image_id,flavor_id,conf_yml, certscript, os.path.basename(certpath)) + jobfile_data
 
 if args.outfile:
     try:
