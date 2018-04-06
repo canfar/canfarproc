@@ -100,7 +100,7 @@ done
 if [[ -e ${CANFAR_CERT_PATH} ]]; then
     canfar_check_cert ${CANFAR_CERT_PATH}
 else if [[ -e ${PWD}/cadcproxy.pem ]]; then
-    canfar_check_cert ${PWD}/cadcproxy.pem
+    canfar_check_cert ${PWD}/cadcproxy.pem && CANFAR_CERT_PATH=${PWD}/cadcproxy.pem
 else if [[ -e ${CANFAR_CERT_DEFAULT_PATH} ]]; then
     canfar_check_cert ${CANFAR_CERT_DEFAULT_PATH}
 else
@@ -108,5 +108,7 @@ else
 fi
 
 # hack to copy to default location for vos
-mkdir -p $(dirname ${CANFAR_CERT_DEFAULT_PATH})
-cp ${CANFAR_CERT_PATH} ${CANFAR_CERT_DEFAULT_PATH}
+if [[ -e ${CANFAR_CERT_PATH} ]]; then
+    mkdir -p $(dirname ${CANFAR_CERT_DEFAULT_PATH})
+    cp ${CANFAR_CERT_PATH} ${CANFAR_CERT_DEFAULT_PATH}
+fi
