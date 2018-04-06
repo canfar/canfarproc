@@ -3,6 +3,8 @@
 # script to renew a cert and move it to ~/.ssl/cadcproxy.pem before each condor job
 # very much a hack to allow transitioning
 
+type -P canfar_cert > /dev/null && canfar_cert $1 && exit 0
+
 [[ $# -lt 1 ]] && echo 2> "ERROR: cert hook missing cert path"
 mkdir -p ~/.ssl
 cadc-get-cert --cert $1 --days-valid=${2:-15}

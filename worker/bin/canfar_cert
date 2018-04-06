@@ -4,7 +4,7 @@
 #
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.1.1
+EXEC_VERSION=0.1.2
 
 # Default path for CANFAR user X509 proxy cert
 CANFAR_CERT_DEFAULT_PATH="${HOME}/.ssl/cadcproxy.pem"
@@ -36,8 +36,9 @@ Try to generate a new proxy cert with minimum validity for processing
 
   -c, --cert          	    specify the CANFAR cert path to inject (default: ${CANFAR_CERT_PATH})
   -u, --user          	    specify the CANFAR username to fetch the cert for (default: ${USER})
+  -v, --verbose             verbose for debugging
   -h, --help                display help and exit
-  -v, --version             output version information and exit
+  -V, --version             output version information and exit
 
 "
     exit
@@ -47,17 +48,19 @@ Try to generate a new proxy cert with minimum validity for processing
 # 1. using an existing cert
 # 2. using a .netrc file
 canfar_get_cert() {
-    local days=$1 cert=$2
+    local days=$1 cert=$2    
     if [[ -n ${cert} ]] && [[ -e ${cert} ]]; then
-	cadc-get-cert --quiet --days-valid=${days} --cert ${cert} > /dev/null && return
+	[[ -n ${VERBOSE} ]] && msg "trying with old cert"
+	cadc-get-cert --quiet --days-valid=${days} --cert ${cert} &> /dev/null && return 0
     fi
     if grep -q ${CADC_URL}.*${CANFAR_USER} ${HOME}/.netrc 2> /dev/null; then
-	cadc-get-cert --quiet --days-valid=${days} --netrc-file > /dev/null
+	[[ -n ${VERBOSE} ]] && msg "trying netrc"
+	cadc-get-cert --quiet --days-valid=${days} -n > /dev/null && return 0
     elif grep -q ${CANFAR_URL}.*${CANFAR_USER} ${HOME}/.netrc 2> /dev/null; then
-	getCert--daysValid=${days} > /dev/null
-    else
-	die "could not generate a new certificate automatically"
+	[[ -n ${VERBOSE} ]] && msg "trying getCert"	
+	getCert--daysValid=${days} > /dev/null && return 0
     fi
+    return 1
 }
 
 # Check a proxy cert for minimum days of validity for processing
@@ -66,30 +69,36 @@ canfar_check_cert() {
     local last_day_valid="$(openssl x509 -in ${cert} -enddate -noout | sed -e 's/notAfter=//')"
     local days_left=$(( ( $(date --date="${last_day_valid}" +%s) - $(date --date="${today}" +%s) ) / 86400 ))
     if [[ ${days_left} -lt ${CANFAR_CERT_MIN_VALID} ]]; then
-	msg "Renewing certificate for ${CANFAR_CERT_MAX_VALID} days"
-	canfar_get_cert ${CANFAR_CERT_MAX_VALID} ${cert} || die "could not renew proxy cert"
+	[[ -n ${VERBOSE} ]] && msg "Left with ${days_left} days"
+	[[ -n ${VERBOSE} ]] && msg "Renewing certificate for ${CANFAR_CERT_MAX_VALID} days"
+	canfar_get_cert ${CANFAR_CERT_MAX_VALID} ${cert}
+	 #|| die "could not renew proxy cert"
     else
-	msg "Your certificate is still valid for ${days_left} days"
+	[[ -n ${VERBOSE} ]] && msg "Your certificate is still valid for ${days_left} days"
+	return 0
     fi
 }
 
 # Store all options
 OPTS=$(getopt \
-    -o c:u:hv \
+    -o c:u:hvV \
     -l cert: \
     -l user: \
     -l help \
+    -l verbose \
     -l version \
     -- "$@")
 
 eval set -- "${OPTS}"
 
 # Process options
+VERBOSE=
 while true; do
     case "$1" in
 	-c | --cert) CANFAR_CERT_PATH=${2##=}; shift ;;
 	-u | --user) CANFAR_USER=${2##=}; shift ;;
 	-h | --help) usage ;;
+	-v | --verbose) VERBOSE=true ;;	
 	-V | --version) echo ${EXEC_VERSION}; exit ;;
 	--)  shift; break ;; # no more options
 	*) break ;; # parameters
@@ -97,18 +106,32 @@ while true; do
     shift
 done
 
+valid=no
+
 if [[ -e ${CANFAR_CERT_PATH} ]]; then
-    canfar_check_cert ${CANFAR_CERT_PATH}
-else if [[ -e ${PWD}/cadcproxy.pem ]]; then
-    canfar_check_cert ${PWD}/cadcproxy.pem && CANFAR_CERT_PATH=${PWD}/cadcproxy.pem
-else if [[ -e ${CANFAR_CERT_DEFAULT_PATH} ]]; then
-    canfar_check_cert ${CANFAR_CERT_DEFAULT_PATH}
-else
-    canfar_get_cert ${CANFAR_CERT_MAX_VALID} || die "could not get a valid certificate"
+    [[ -n ${VERBOSE} ]] && msg "checking ${CANFAR_CERT_PATH}"
+    canfar_check_cert ${CANFAR_CERT_PATH} && valid=yes
 fi
+
+if [[ -e ${PWD}/cadcproxy.pem ]] && [[ ${valid} == no ]]; then
+    [[ -n ${VERBOSE} ]] && msg "checking ${PWD}/cadcproxy.pem"    
+    canfar_check_cert ${PWD}/cadcproxy.pem && valid=yes && CANFAR_CERT_PATH=${PWD}/cadcproxy.pem
+fi
+
+if [[ -e ${CANFAR_CERT_DEFAULT_PATH} ]] && [[ ${valid} == no ]]; then
+    [[ -n ${VERBOSE} ]] && msg "checking ${CANFAR_CERT_DEFAULT_PATH}"
+    canfar_check_cert ${CANFAR_CERT_DEFAULT_PATH} && valid=yes
+else
+    echo 3
+    [[ -n ${VERBOSE} ]] && msg "trying to get one automatically"
+    canfar_get_cert ${CANFAR_CERT_MAX_VALID} && valid=yes
+fi
+
+[[ ${valid} == no ]] && die "could not get a valid cert"
 
 # hack to copy to default location for vos
 if [[ -e ${CANFAR_CERT_PATH} ]]; then
     mkdir -p $(dirname ${CANFAR_CERT_DEFAULT_PATH})
     cp ${CANFAR_CERT_PATH} ${CANFAR_CERT_DEFAULT_PATH}
 fi
+

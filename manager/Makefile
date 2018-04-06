@@ -12,7 +12,9 @@ RM = rm -f
 SCRIPTS = canfar_submit canfar_job_validate cansub \
 	  canfar_cloud_cleanup canfar_inject_cert
 
-DATA = canfar_batch_cert canfar_batch_init canfar_batch_rsa.pub
+WORKER_SCRIPTS = canfar_batch_cert canfar_batch_init
+
+DATA = canfar_batch_rsa.pub
 
 
 install: 
@@ -25,6 +27,10 @@ install:
 	for data in $(DATA); do \
 		echo " $(INSTALL_DATA) share/$$data $(DESTDIR)$(datadir)/$$data" ; \
 		$(INSTALL_DATA) share/$$data $(DESTDIR)$(datadir)/$$data ; \
+	done; \
+	for script in $(WORKER_SCRIPTS); do \
+		echo " $(INSTALL_SCRIPT) share/$$script $(DESTDIR)$(datadir)/$$script" ; \
+		$(INSTALL_SCRIPT) share/$$script $(DESTDIR)$(sharedir)/$$script ; \
 	done
 
 uninstall:
