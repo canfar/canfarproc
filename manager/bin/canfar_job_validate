@@ -111,7 +111,8 @@ runcmd:
       END_OF_SCRIPT
   - [ 'chmod', '0755', '%s' ]
   - [ '%s'%s ]
-  - cat - > %s <<'END_OF_SCRIPT'
+  - |
+      cat - > %s <<'END_OF_SCRIPT'
 ''' % (conf_script_path, conf_script_path, conf_script_args, cert_script_path)
 
     end_text = '''
@@ -192,7 +193,7 @@ try:
         certpath = os.path.join(os.environ['HOME'],'.ssl','cadcproxy.pem')
 
     if not os.path.isfile(certpath):
-        raise Exception("obtaining certificate: %s" % certpath)
+        raise Exception("did not find certificate at %s" % certpath)
             
     jobfile = args.jobfile
     jobscript = args.jobscript
@@ -261,10 +262,10 @@ flavor_id: %s''' % (auth['auth_url'],auth['username'],auth['tenant_name'],auth['
         jobfile_data = jobfile_data + 'should_transfer_files = YES'
 
     jobfile_data,c =  re.subn('^\s*transfer_input_files\s*=(.*)',
-                              r'transfer_input_files = \1, %s' % certpath,
+                              r'transfer_input_files = \1, %s, %s' % (certscript, certpath),
                               jobfile_data, flags=re.MULTILINE)
     if (c == 0):
-        jobfile_data = 'transfer_input_files = %s, %s\n' % certpath + jobfile_data
+        jobfile_data = 'transfer_input_files = %s, %s\n' % (certscript, certpath) + jobfile_data
 
     # determine the name of the image from its UUID, and the name
     # of the tenant that owns it. First we get a glance client to
@@ -333,7 +334,7 @@ jobfile = '''Requirements = VMType =?= "%s" && Arch == "x86_64"
 +VMKeepAlive    = 3
 +PreCmd         = "%s"
 +PreArguments   = "%s"
-''' % (vmtype,image_id,flavor_id,conf_yml, certscript, os.path.basename(certpath)) + jobfile_data
+''' % (vmtype,image_id,flavor_id,conf_yml, os.path.basename(certscript), os.path.basename(certpath)) + jobfile_data
 
 if args.outfile:
     try:

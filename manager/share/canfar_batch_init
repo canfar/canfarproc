@@ -4,11 +4,13 @@
 # Assumes a debian or fedora based (i.e. ubuntu and centos)
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.1.0
+EXEC_VERSION=0.1.3
 
 # need to specify local ip to bypass unreliable dns on cc clouds.
-CM_HOST_NAME="batch.canfar.net"
-CM_HOST_IP="10.21.0.20"
+#CM_HOST_NAME="batch.canfar.net"
+#CM_HOST_IP="10.21.0.20"
+CM_HOST_NAME="batch-dev.canfar.net"
+CM_HOST_IP="10.21.0.30"
 VMSTORAGE_HOST_NAME="vmstore.canfar.net"
 VMSTORAGE_HOST_IP="10.21.0.25"
 
@@ -48,14 +50,15 @@ canfar_configure_condor_file() {
     local condorconfig="$(condor_config_val LOCAL_CONFIG_DIR)"
     if [[ -n ${condorconfig} ]]; then
 	mkdir -p ${condorconfig}
-	rm -f ${condorconfig}/$1
 	condorconfig="${condorconfig}/$1"
     else
 	condorconfig="$(condor_config_val LOCAL_CONFIG_FILE)"
 	[[ -n ${condorconfig} ]] || die "condor configuration file '${condorconfig}' is undefined"
     fi
-    echo "#########################################################" > ${condorconfig}
-    echo "# Automatically added for CANFAR by ${EXEC_NAME}" >> ${condorconfig}    
+    if [[ ! -e ${condorconfig} ]]; then
+	echo "#########################################################" > ${condorconfig}
+	echo "# Automatically added for CANFAR by ${EXEC_NAME}" >> ${condorconfig}
+    fi
     echo ${condorconfig}
 }
 
@@ -68,7 +71,6 @@ CCB_ADDRESS = \$(CONDOR_HOST)
 DAEMON_LIST = MASTER, STARTD
 MaxJobRetirementTime = 3600 * 24 * 2
 SHUTDOWN_GRACEFUL_TIMEOUT = 3600 * 25 * 2
-STARTD_ATTRS = COLLECTOR_HOST_STRING VMType
 SUSPEND = FALSE
 CONTINUE = TRUE
 PREEMPT = FALSE
@@ -84,17 +86,21 @@ EOF
 
 canfar_configure_condor_cloudscheduler() {
     local condorconfig=$(canfar_configure_condor_file cloudscheduler)
-    echo "VMType = ${VM_IMAGE_NAME}" >> ${condorconfig}
+    cat > ${condorconfig} <<EOF
+VMType = ${VM_IMAGE}
+STARTD_ATTRS = COLLECTOR_HOST_STRING VMType \$(STARTD_ATTRS)
+EOF
+
     echo "${CM_HOST_NAME}" > /etc/condor/central_manager
 }
 
 canfar_configure_condor_execdir() {
     local execdir="${VM_EPHEMERAL_DIR}/condor"
     msg "setting up working ephemeral directory for CANFAR"
-    if ! mount | grep -q ${ephemdir}; then 
+    if ! mount | grep -q ${VM_EPHEMERAL_DIR}; then
 	msg "ephemeral partition not mounted. Trying to do so."
-	mkdir -p ${ephemdir}
-	if ! mount /dev/vdb ${ephemdir}; then
+	mkdir -p ${VM_EPHEMERAL_DIR}
+	if ! mount /dev/vdb ${VM_EPHEMERAL_DIR}; then
 	    msg "VM has no ephemeral partition"
 	    execdir="/var/lib/condor/execute"
 	    msg "condor execdir is now ${execdir}"
@@ -103,15 +109,18 @@ canfar_configure_condor_execdir() {
     [[ -d ${execdir} ]] || mkdir -p ${execdir}
     chown condor:condor ${EPHEMERAL_DIR}
     chown condor:condor ${execdir}
-    chmod ugo+rwxt ${execdir}        
-    echo "EXECUTE = ${execdir}" >> ${condorconfig}
-}    
+    chmod ugo+rwxt ${execdir}
+    echo "EXECUTE = ${execdir}" >> $(canfar_configure_condor_file worker)
+}
 
 canfar_configure_condor_user() {
     local condorconfig=$(canfar_configure_condor_file user)
     if [[ ${VM_USER} == anonymous ]]; then
-	echo "DEDICATED_EXECUTE_ACCOUNT_REGEXP = slot[0-9]+" >> ${condorconfig}
-	echo "STARTER_ALLOW_RUNAS_OWNER = FALSE" >> ${condorconfig}
+	cat >> ${condorconfig} <<EOF
+DEDICATED_EXECUTE_ACCOUNT_REGEXP = slot[0-9]+
+STARTER_ALLOW_RUNAS_OWNER = FALSE
+TRUST_UID_DOMAIN = FALSE
+EOF
 	local i
 	# create home directory because vos needs certs in there
 	for i in $(seq -w ${VM_MAX_SLOTS}); do
@@ -119,24 +128,32 @@ canfar_configure_condor_user() {
 	    useradd --shell /bin/bash --gid condor --create-home slot${i}
 	done
     else
-	id -u ${VM_USER} 1> /dev//null 2>&1 || die "user ${VM_USER} does not exist on worker VM"
+	id -u ${VM_USER} 1> /dev/null 2>&1 || die "user ${VM_USER} does not exist on worker VM"
 	cat >> ${condorconfig} <<EOF
-START = ( Owner == ${SUBMITTER} )
+START = ( Owner == ${VM_USER} )
 STARTER_ALLOW_RUNAS_OWNER = TRUE
 UID_DOMAIN = ${CM_HOST_NAME#*.}
 TRUST_UID_DOMAIN = TRUE
 SOFT_UID_DOMAIN = TRUE
 EOF
-	
+
     fi
 }
 
 canfar_setup_batch_condor() {
+    local cv=$(condor_version 2> /dev/null | awk '/BuildID/ {print $2}')
+    if [[ -z ${cv} ]]; then
+	msg "condor is missing, trying to install it"
+	type -P canfar_batch_prepare >/dev/null && canfar_batch_prepare
+    fi
+
     msg "restart condor services to include CANFAR configuration changes"
     service condor stop
+    canfar_configure_condor_worker
+    canfar_configure_condor_execdir
     canfar_configure_condor_cloudscheduler
     canfar_configure_condor_user
-    # cleaning up condor logs at each new VM worker
+    # cleaning up condor logs at each new launched VM
     rm -rf $(condor_config_val LOG)/*
     service condor start
 }
@@ -162,16 +179,16 @@ canfar_setup_batch_network() {
     fi
     addstr="# Added for condor to specify central manager of local network"
     sed -i -e "/${CM_HOST_NAME}/d" ${etc_hosts}
-    if grep -q "${CM_HOST_IP}[[:space:]]*" ${etc_hosts} ; then	
+    if grep -q "${CM_HOST_IP}[[:space:]]*" ${etc_hosts} ; then
 	sed -i -e "s:[[:space:]]${CM_HOST_IP}[[:space:]]*.*:${CM_HOST_IP} ${CM_HOST_NAME} ${addstr}:" ${etc_hosts}
     else
-	echo "${CM_HOST_IP} batch ${CM_HOST_NAME} ${addstr}" >> ${etc_hosts}
+	echo "${CM_HOST_IP} ${CM_HOST_NAME%%.*} ${CM_HOST_NAME} ${addstr}" >> ${etc_hosts}
     fi
 
     # Read-only glusterfs local master
     addstr="# Added for glusterfs to connect locally"
     sed -i -e "/${VMSTORAGE_HOST_NAME%%.*}/d" ${etc_hosts}
-    echo "${VMSTORAGE_HOST_IP} vmstore ${VMSTORAGE_HOST_NAME} ${addstr}" >> ${etc_hosts}
+    echo "${VMSTORAGE_HOST_IP} ${VMSTORAGE_HOST_NAME%%.*} ${VMSTORAGE_HOST_NAME} ${addstr}" >> ${etc_hosts}
 
     # Disable firewall (usually only needed on centos6)
     if service iptables status 2> /dev/null; then
@@ -208,7 +225,7 @@ vm.dirty_expire_centisecs = 12000
 vm.swappiness = 0
 EOF
 
-    sysctl --system    
+    sysctl --system
 }
 
 canfar_setup_batch_selinux() {
@@ -238,7 +255,7 @@ eval set -- "${OPTS}"
 while true; do
     case "$1" in
 	-i | --image-name) VM_IMAGE=${2##=}; shift ;;
-	-u | --user)   VM_USER=${2##=}; shift ;;
+	-u | --user)  VM_USER=${2##=}; shift ;;
 	-h | --help) usage ;;
 	-V | --version) echo ${EXEC_VERSION}; exit ;;
 	--)  shift; break ;; # no more options

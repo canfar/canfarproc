@@ -30,7 +30,7 @@ install:
 	done; \
 	for script in $(WORKER_SCRIPTS); do \
 		echo " $(INSTALL_SCRIPT) share/$$script $(DESTDIR)$(datadir)/$$script" ; \
-		$(INSTALL_SCRIPT) share/$$script $(DESTDIR)$(sharedir)/$$script ; \
+		$(INSTALL_SCRIPT) share/$$script $(DESTDIR)$(datadir)/$$script ; \
 	done
 
 uninstall:
