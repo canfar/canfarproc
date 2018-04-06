@@ -4,7 +4,7 @@
 #
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.1.0
+EXEC_VERSION=0.1.1
 
 # Default path for CANFAR user X509 proxy cert
 CANFAR_CERT_DEFAULT_PATH="${HOME}/.ssl/cadcproxy.pem"
@@ -31,7 +31,7 @@ die() {
 }
 
 usage() {
-    echo $"Usage: ${EXEC_NAME} [OPTION] SUBFILE...SUBFILE
+    echo $"Usage: ${EXEC_NAME} [OPTION]
 Try to generate a new proxy cert with minimum validity for processing
 
   -c, --cert          	    specify the CANFAR cert path to inject (default: ${CANFAR_CERT_PATH})
@@ -99,6 +99,8 @@ done
 
 if [[ -e ${CANFAR_CERT_PATH} ]]; then
     canfar_check_cert ${CANFAR_CERT_PATH}
+else if [[ -e ${PWD}/cadcproxy.pem ]]; then
+    canfar_check_cert ${PWD}/cadcproxy.pem
 else if [[ -e ${CANFAR_CERT_DEFAULT_PATH} ]]; then
     canfar_check_cert ${CANFAR_CERT_DEFAULT_PATH}
 else
