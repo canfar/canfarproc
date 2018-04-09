@@ -7,7 +7,7 @@
 # submit jobs directly on the head node for testing purposes.
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.2.0
+EXEC_VERSION=0.2.1
 
 msg() {
     echo " >> ${EXEC_NAME}: $1"
@@ -26,6 +26,7 @@ Submit a CANFAR processing job
   VM_IMAGE       OpenStack VM image used to process jobs (name or ID)
   VM_FLAVOR      OpenStack VM resource flavor used to process jobs
 
+  -u, --user=<username>     specify username to run the jobs (default: automatically created)
   -h, --help                display help and exit
   -v, --version             output version information and exit
   -V, --verbose             verbose mode for debugging
@@ -45,7 +46,8 @@ VERBOSE=
 
 # Store all options
 OPTS=$(getopt \
-    -o hvV \
+    -o u:hvV \
+    -l user: \
     -l help \
     -l version \
     -l verbose \
@@ -53,8 +55,10 @@ OPTS=$(getopt \
 
 eval set -- "${OPTS}"
 
+JOB_USER=
 while true; do
     case "$1" in
+	-u | --user) JOB_USER="--user=${2##=}"; shift ;;
 	-h | --help) usage ;;
 	-v | --version) echo ${EXEC_VERSION}; exit ;;
 	-V | --verbose) VERBOSE="--verbose" ;;
@@ -97,7 +101,7 @@ VM_IMAGE_AND_FLAVOR_IDS=$(cansub ${JOB_FILE} ${VM_IMAGE} ${VM_FLAVOR} --nopost) 
 
 # big string for the job
 [[ -n ${VERBOSE} ]] && msg "Will run canfar_job_validate ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS}"
-JOB=$(canfar_job_validate ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS}) \
+JOB=$(canfar_job_validate ${JOB_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS}) \
     || die "failed to validate job with submission file: ${JOB_FILE}"
 
 echo "${JOB}" | condor_submit || die "failed to submit job to queue"
