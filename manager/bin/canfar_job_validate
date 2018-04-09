@@ -31,10 +31,18 @@ logging.disable(logging.CRITICAL)
 param_disallow = dict(
     [ ['Requirements', 'Generated from image'],
       ['+VMAMI', 'Generated from image'],
-      ['+VMInstanceType', 'Generated from flavor'],
-      ['+PreCmd', 'Used to pass proxy cert'],
-      ['+PreArguments', 'Used to pass proxy cert']      
+      ['+VMInstanceType', 'Generated from flavor']
     ] )
+
+param_preset = dict(
+    [ ['Universe', 'vanilla'],
+      ['when_to_transfer_output', 'ON_EXIT_OR_EVICT'],
+      ['transfer_output_files', '/dev/null'],
+      ['should_transfer_files', 'YES'],
+      ['+PreCmd', '"canfar_batch_cert"'],
+      ['+PreArguments', '"cadcproxy.pem"'],
+      ['+VMKeepAlive', '3']
+     ] )
 
 # OpenStack auth configuration / defaults.
 # Take OS_* variables if provided (with following defaults).
@@ -64,7 +72,7 @@ confdir = '/var/cache/canfar'
 # Subroutine to generate a cloud config file. This is copied almost verbatim
 # from make_cloud_config, and should be moved to a module at a later point.
 def make_cloud_config(conf_script, pubkey, output_yml, cert_script,
-                      image_user=None, image_name=None):
+                      job_user=None, image_name=None):
     # Generate a cloud config file (YAML) that performs the following
     # operations:
     # - inject a public ssh key into the generic user account
@@ -103,9 +111,9 @@ runcmd:
     if image_name:
         conf_script_args = conf_script_args + \
                            ", '--image-name=\"%s\"'" % image_name
-    if image_user:
+    if job_user:
         conf_script_args = conf_script_args + \
-                           ", '--user=\"%s\"'" % image_user
+                           ", '--user=\"%s\"'" % job_user
 
     mid_text = '''
       END_OF_SCRIPT
@@ -156,8 +164,8 @@ try:
     parser.add_argument('--os-tenant-id',
                         help='tenant id if OS_TENANT_ID not set')
     parser.add_argument('--os-auth-url',help='auth URL if OS_AUTH_URL not set')
-    parser.add_argument('--image-user',
-                        help='Set user for VM image (default: automatic)')
+    parser.add_argument('--user',
+                        help='Set user to run the jobs on VM workers (default: automatically created users)')
     parser.add_argument('-v','--verbose',default=False,
                         help='verbose output',action='store_true')
 
@@ -175,9 +183,9 @@ try:
             raise Exception("Neither --%s nor %s set in the environment" \
                 % (argname.replace('_','-'), osvar))
 
-    image_user=None
-    if args.image_user:
-        image_user = args.image_user
+    job_user=None
+    if args.user:
+        job_user = args.user
 
     # submitter is only to keep track on a local yml file
     try:
@@ -186,6 +194,11 @@ try:
         raise Exception('Error obtaining submitter name from current user')
 
     conf_yml = '%s/%s_%s.yml' % (confdir,submitter,uuid.uuid4())
+
+    if (submitter == job_user):
+        ownerstr = "True"
+    else:
+        ownerstr = "False"
 
     if args.cert:
         certpath = args.cert
@@ -229,7 +242,7 @@ flavor_id: %s''' % (auth['auth_url'],auth['username'],auth['tenant_name'],auth['
         raise Exception("Could not read the contents of "+jobfile)
 
     if args.verbose:
-        print "Searching for illegal keywords."
+        print "Searching for illegal keywords in job file"
     for param in param_disallow:
         par_regex = param
         if param[0] == '+':
@@ -243,6 +256,18 @@ flavor_id: %s''' % (auth['auth_url'],auth['username'],auth['tenant_name'],auth['
                   % (param, param_disallow[param])
             raise Exception(msg)
 
+    if args.verbose:
+        print "Presetting keywords in job file if necessary"
+    for param in param_preset:
+        par_regex = param
+        if param[0] == '+':
+            # Parameters that start with + need to be escaped in regex
+            par_regex = '\\'+par_regex
+        regex = "^\s*"+par_regex+"\s*=.*$"
+        found = re.search(regex, jobfile_data, re.MULTILINE)
+        if not found:
+            jobfile_data = "%s = %s\n" % (param, param_preset[param]) + jobfile_data
+    
     # Re-write 'Executable' line since the proc web service will have
     # placed it somewhere different from the user's original location
     if args.verbose:
@@ -253,13 +278,6 @@ flavor_id: %s''' % (auth['auth_url'],auth['username'],auth['tenant_name'],auth['
     jobfile_data =  re.sub('^\s*Executable\s*=\s*(.*)$',
                            'Executable = %s' % jobscript,
                            jobfile_data,flags=re.MULTILINE)
-
-    # Add user cert and hook script to be transfered
-    jobfile_data,c =  re.subn('^\s*should_transfer_files\s*=.*',
-                              'should_transfer_files = YES',
-                              jobfile_data, flags=re.MULTILINE)
-    if (c == 0):
-        jobfile_data = jobfile_data + 'should_transfer_files = YES'
 
     jobfile_data,c =  re.subn('^\s*transfer_input_files\s*=(.*)',
                               r'transfer_input_files = \1, %s, %s' % (certscript, certpath),
@@ -309,14 +327,14 @@ flavor_id: %s''' % (auth['auth_url'],auth['username'],auth['tenant_name'],auth['
         print "config shell script = %s" % confscript
         print "image_name          = %s" % image_name
         print "image_tenant_name   = %s" % image_tenant_name
-        print "image_user          = %s" % image_user
+        print "job_user            = %s" % job_user
         print "output YAML         = %s" % conf_yml
 
     vmtype = '%s:%s'%(image_tenant_name,image_name)
 
     make_cloud_config(confscript,canfarcspubkey,conf_yml,
                       certscript,
-                      image_user=image_user,
+                      job_user=job_user,
                       image_name=vmtype)
 
 except Exception as E:
@@ -331,10 +349,9 @@ jobfile = '''Requirements = VMType =?= "%s" && Arch == "x86_64"
 +VMAMI          = "canfar:%s"
 +VMInstanceType = "canfar:%s"
 +VMAMIConfig    = "%s"
-+VMKeepAlive    = 3
-+PreCmd         = "%s"
-+PreArguments   = "%s"
-''' % (vmtype,image_id,flavor_id,conf_yml, os.path.basename(certscript), os.path.basename(certpath)) + jobfile_data
+RunAsOwner      = %s
+
+''' % (vmtype, image_id, flavor_id,conf_yml, ownerstr) + jobfile_data
 
 if args.outfile:
     try:
