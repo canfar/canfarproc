@@ -34,7 +34,7 @@ usage() {
     echo $"Usage: ${EXEC_NAME} [OPTION]
 Try to generate a new proxy cert with minimum validity for processing
 
-  -c, --cert          	    specify the CANFAR cert path to inject (default: ${CANFAR_CERT_PATH})
+  -c, --cert          	    specify the CANFAR cert path to inject (default: ${CANFAR_CERT_DEFAULT_PATH})
   -u, --user          	    specify the CANFAR username to fetch the cert for (default: ${USER})
   -v, --verbose             verbose for debugging
   -h, --help                display help and exit
@@ -122,7 +122,6 @@ if [[ -e ${CANFAR_CERT_DEFAULT_PATH} ]] && [[ ${valid} == no ]]; then
     [[ -n ${VERBOSE} ]] && msg "checking ${CANFAR_CERT_DEFAULT_PATH}"
     canfar_check_cert ${CANFAR_CERT_DEFAULT_PATH} && valid=yes
 else
-    echo 3
     [[ -n ${VERBOSE} ]] && msg "trying to get one automatically"
     canfar_get_cert ${CANFAR_CERT_MAX_VALID} && valid=yes
 fi
