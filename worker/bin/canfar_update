@@ -1,0 +1,37 @@
+#!/bin/bash
+
+EXEC_NAME=$(basename $0 .${0##*.})
+EXEC_VERSION=0.1.1
+
+msg() {
+    echo " >> ${EXEC_NAME}: $1"
+}
+
+die() {
+    echo "${EXEC_NAME} Error: $1" 1>&2
+    exit 1
+}
+
+usage() {
+    echo $"Usage: ${EXEC_NAME}
+Update CANFAR specific scripts and web service clients
+"
+    exit
+}
+
+GITURL="https://github.com/canfar/canfarproc/raw/master/worker/bin"
+
+[[ ${EUID} -ne 0 ]] && die "you must run this script as root or with sudo"	
+
+SCRIPTS="batch_prepare create_user dotnetrc cert update"
+
+for script in ${SCRIPTS} ; do
+    cs=canfar_${script}
+    msg "updating ${cs}"
+    curl -sL ${GITURL}/${cs} -o ${cs}
+    install -c ${cs} /usr/local/bin
+    rm ${cs}
+done
+
+msg "updating vos client"
+pip install --upgrade --no-deps cadcutils vos
