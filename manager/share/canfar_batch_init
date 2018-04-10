@@ -4,18 +4,20 @@
 # Assumes a debian or fedora based (i.e. ubuntu and centos)
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.1.4
+EXEC_VERSION=0.1.5
 
 # need to specify local ip to bypass unreliable dns on cc clouds.
-CM_HOST_NAME="batch.canfar.net"
-CM_HOST_IP="10.21.0.20"
+#CM_HOST_NAME="batch.canfar.net"
+#CM_HOST_IP="10.21.0.20"
+CM_HOST_NAME="batch-dev.canfar.net"
+CM_HOST_IP="10.21.0.30"
 VMSTORAGE_HOST_NAME="vmstore.canfar.net"
 VMSTORAGE_HOST_IP="10.21.0.25"
 
+# default user
+JOB_USER=any
 # default image name of the VM
 VM_IMAGE=${HOSTNAME}
-# default user
-VM_USER=anonymous
 # default directory where the ephemeral partition is mounted to run jobs
 VM_EPHEMERAL_DIR="/mnt"
 # default maximum number of jobs per VM (assuming the max vm has VM_MAX_SLOTS CPUs)
@@ -102,15 +104,14 @@ canfar_configure_condor_execdir() {
 	fi
     fi
     [[ -d ${execdir} ]] || mkdir -p ${execdir}
-    chown condor:condor ${EPHEMERAL_DIR}
-    chown condor:condor ${execdir}
+    chown condor:condor -R ${VM_EPHEMERAL_DIR}
     chmod ugo+rwxt ${execdir}
     echo "EXECUTE = ${execdir}" >> $(canfar_configure_condor_file worker)
 }
 
 canfar_configure_condor_user() {
     local condorconfig=$(canfar_configure_condor_file user)
-    if [[ ${VM_USER} == anonymous ]]; then
+    if [[ ${JOB_USER} == any ]]; then
 	cat >> ${condorconfig} <<EOF
 NUM_SLOTS = 1
 NUM_SLOTS_TYPE_1 = 1
@@ -127,9 +128,9 @@ EOF
 	    useradd --shell /bin/bash --gid condor --create-home ${slotusr}
 	done
     else
-	id -u ${VM_USER} 1> /dev/null 2>&1 || die "user ${VM_USER} does not exist on worker VM"
+	id -u ${JOB_USER} 1> /dev/null 2>&1 || die "user ${JOB_USER} does not exist on worker VM"
 	cat >> ${condorconfig} <<EOF
-START = ( Owner == ${VM_USER} )
+START = ( Owner == "${JOB_USER}" )
 STARTER_ALLOW_RUNAS_OWNER = TRUE
 UID_DOMAIN = ${CM_HOST_NAME#*.}
 TRUST_UID_DOMAIN = TRUE
@@ -257,7 +258,7 @@ eval set -- "${OPTS}"
 while true; do
     case "$1" in
 	-i | --image-name) VM_IMAGE=${2##=}; shift ;;
-	-u | --user)  VM_USER=${2##=}; shift ;;
+	-u | --user)  JOB_USER=${2##=}; shift ;;
 	-h | --help) usage ;;
 	-V | --version) echo ${EXEC_VERSION}; exit ;;
 	--)  shift; break ;; # no more options

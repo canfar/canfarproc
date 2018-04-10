@@ -113,7 +113,7 @@ runcmd:
                            ", '--image-name=\"%s\"'" % image_name
     if job_user:
         conf_script_args = conf_script_args + \
-                           ", '--user=\"%s\"'" % job_user
+                           ", '--user=%s'" % job_user
 
     mid_text = '''
       END_OF_SCRIPT
