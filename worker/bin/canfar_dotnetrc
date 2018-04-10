@@ -1,11 +1,10 @@
 #!/bin/bash
 
-
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.1.0
+EXEC_VERSION=0.2.0
 
 msg() {
-    echo " >> ${EXEC_NAME}: $1"
+    echo -e " >> ${EXEC_NAME}: $1"
 }
 
 die() {
@@ -19,8 +18,13 @@ CANFAR_URLS=(
     www.canfar.net
 )
 
+# the file to change is for the user who called the script
+DOT_NETRC="${HOME}/.netrc"
+
 usage() {
     echo $"Usage: ${EXEC_NAME} [OPTIONS] USERNAME
+Check or create a ${DOT_NETRC} file ready for CANFAR.
+
   -h, --help                display help and exit
   -v, --version             output version information and exit
 "
@@ -28,15 +32,15 @@ usage() {
 }
 
 # Check .netrc has password. If absent, prompt the user.
-canfar_password() {
-    local dotnetrc=$1 psswd url
-    if [[ -f ${dotnetrc} ]]; then
+canfar_dotnetrc_password() {
+    local psswd url
+    if [[ -f ${DOT_NETRC} ]]; then
 	for url in ${CANFAR_URLS[@]}; do
-            psswd=$(awk -v url=${url} '$0 ~ url {print $6;exit}' ${dotnetrc} 2> /dev/null)
+            psswd=$(awk -v url=${url} '$0 ~ url {print $6;exit}' ${DOT_NETRC} 2> /dev/null)
             [[ -n ${psswd} ]] && echo ${psswd} && return
 	done
     fi
-    local c prompt="CANFAR password: "
+    local c prompt=" >> CANFAR password: "
     while IFS= read -p "${prompt}" -r -s -n 1 c; do
         [[ ${c} == $'\0' ]] && break
         prompt='*'
@@ -46,72 +50,53 @@ canfar_password() {
 }
 
 # Check .netrc file has username. If absent, prompt the user.
-canfar_username() {
-    local user=$1 url dotnetrc=$1/.netrc
-    if [[ -f ${dotnetrc} ]]; then
+canfar_dotnetrc_username() {
+    local user=$1 url
+    if [[ -f ${DOT_NETRC} ]]; then
 	for url in ${CANFAR_URLS[@]}; do
-            user=$(awk -v url=${url} '$0 ~ url {print $4;exit}' ${dotnetrc} 2> /dev/null)
+            user=$(awk -v url=${url} '$0 ~ url {print $4;exit}' ${DOT_NETRC} 2> /dev/null)
             [[ -n ${user} ]] && echo ${user} && return
 	done
     fi
-    read -p "CANFAR username: " user
+    read -p " >> CANFAR username: " user
     echo ${user}
 }
 
-# Get a valid proxy certificate and put it in the proper directory. Number of days is optional argument.
-canfar_get_proxy() {
-    local userdir=$(echo ~$1) age=${2:-8}
-    local certdir=${HOME}/.ssl certfile=cadcproxy.pem
-    local cert=$(find ${certdir} -name ${certfile} -mtime -${age} 2> /dev/null)
-    if [[ -n ${cert} ]]; then
-        msg "user $1 already has a valid proxy certificate"
-        return
-    fi
-    mkdir -p ${certdir}
-    if wget -q -O ${certdir}/${certfile} \
-        --http-user=$(canfar_username) \
-        --http-password=$(canfar_password) \
-        http://${CANFAR_URLS[0]}/cred/proxyCert\?daysValid=${age}
-    then
-        msg "user $1 has a new proxy certificate valid for ${age} days"
-    fi
-}
-
 # Check the user credential from CANFAR
-canfar_check_dotnetrc() {
-    local dotnetrc=$1 url
+canfar_dotnetrc_check() {
+    local url user=${1}
+    [[ -e ${DOT_NETRC} ]] || return 1
     for url in ${CANFAR_URLS[@]}; do
-	egrep -q "\s*(${url})[[:space:]]+(login|password)[[:space:]]+.*[[:space:]]+(login|password)[[:space:]]+.*" \
-	      ${dotnetrc} 2> /dev/null || return 1
+	if [[ -z ${user} ]]; then
+	    return 1
+	else
+	    grep -q ${user} ${DOT_NETRC} 2> /dev/null || return 1
+	fi
+	egrep -q "[[:space:]]*(${url})[[:space:]]+(login|password)[[:space:]]+.*[[:space:]]+(login|password)[[:space:]]+.*" \
+	      ${DOT_NETRC} 2> /dev/null || return 1
     done
 }
 
 # Append CANFAR sites with username and password to .netrc
 # Prompt for user inputs.
-canfar_make_dotnetrc() {
+canfar_dotnetrc_make() {
     local user=$1 answ url
-    local dotnetrc=~${user}/.netrc
-    if [[ ! -e ${dotnetrc} ]]; then
-        read -p "Do you want to create a .netrc file for user ${user} [Y/n]? " answ
-        [[ ${answ} == [nN]* ]] && return
-    elif canfar_check_dotnetrc ${dotnetrc}; then
-        echo "User ${user} .netrc was already setup for CANFAR."
-        read -p "Do you need to change user/password [y/N]? " answ
+    if canfar_dotnetrc_check ${user}; then
+        msg "${DOT_NETRC} was already setup for CANFAR"
+        read -p " >> Do you need to change user ${user} or password [y/N]? " answ
         [[ ${answ} != y ]] && return
 	for url in ${CANFAR_URLS[@]}; do
-            sed -i -e "/${url}/d" ${dotnetrc}
+            sed -i -e "/${url}.*${user}/d" ${DOT_NETRC}
 	done
-    else
-        read -p "Do you want to setup user ${user} .netrc for CANFAR [Y/n]? "
-        [[ ${answ} == [nN]* ]] && return
     fi
-    user=$(canfar_username) psswd=$(canfar_password)
+    user=$(canfar_dotnetrc_username)
+    psswd=$(canfar_dotnetrc_password)
     for url in ${CANFAR_URLS[@]}; do
-	echo >> ${dotnetrc} "machine ${url} login ${user} password ${psswd}"
+	echo >> ${DOT_NETRC} "machine ${url} login ${user} password ${psswd}"
     done
+    chmod 600 ${DOT_NETRC}
     echo
-    chmod 600 ${dotnetrc}
-    msg "User ${user} .netrc is ready for CANFAR VOSpace"
+    msg "${DOT_NETRC} is setup for CANFAR"
 }
 
 # Store all options
@@ -134,4 +119,4 @@ while true; do
     shift
 done
 
-canfar_make_dotnerc $1
+canfar_dotnetrc_make ${1:-${USER}}
