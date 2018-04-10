@@ -48,7 +48,7 @@ Try to generate a new proxy cert with minimum validity for processing
 # 1. using an existing cert
 # 2. using a .netrc file
 canfar_get_cert() {
-    local days=$1 cert=$2    
+    local days=$1 cert=$2
     if [[ -n ${cert} ]] && [[ -e ${cert} ]]; then
 	[[ -n ${VERBOSE} ]] && msg "trying with old cert"
 	cadc-get-cert --quiet --days-valid=${days} --cert ${cert} &> /dev/null && return 0
@@ -57,7 +57,7 @@ canfar_get_cert() {
 	[[ -n ${VERBOSE} ]] && msg "trying netrc"
 	cadc-get-cert --quiet --days-valid=${days} -n > /dev/null && return 0
     elif grep -q ${CANFAR_URL}.*${CANFAR_USER} ${HOME}/.netrc 2> /dev/null; then
-	[[ -n ${VERBOSE} ]] && msg "trying getCert"	
+	[[ -n ${VERBOSE} ]] && msg "trying getCert"
 	getCert--daysValid=${days} > /dev/null && return 0
     fi
     return 1
@@ -98,7 +98,7 @@ while true; do
 	-c | --cert) CANFAR_CERT_PATH=${2##=}; shift ;;
 	-u | --user) CANFAR_USER=${2##=}; shift ;;
 	-h | --help) usage ;;
-	-v | --verbose) VERBOSE=true ;;	
+	-v | --verbose) VERBOSE=true ;;
 	-V | --version) echo ${EXEC_VERSION}; exit ;;
 	--)  shift; break ;; # no more options
 	*) break ;; # parameters
@@ -114,7 +114,7 @@ if [[ -e ${CANFAR_CERT_PATH} ]]; then
 fi
 
 if [[ -e ${PWD}/cadcproxy.pem ]] && [[ ${valid} == no ]]; then
-    [[ -n ${VERBOSE} ]] && msg "checking ${PWD}/cadcproxy.pem"    
+    [[ -n ${VERBOSE} ]] && msg "checking ${PWD}/cadcproxy.pem"
     canfar_check_cert ${PWD}/cadcproxy.pem && valid=yes && CANFAR_CERT_PATH=${PWD}/cadcproxy.pem
 fi
 
