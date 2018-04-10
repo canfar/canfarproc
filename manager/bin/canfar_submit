@@ -75,9 +75,9 @@ VM_IMAGE=$2
 VM_FLAVOR=$3
 
 if [[ -n ${VERBOSE} ]]; then
-    msg "JOB_FILE:  ${JOB_FILE}"
-    msg "VM_IMAGE:  ${VM_IMAGE}"
-    msg "VM_FLAVOR: ${VM_FLAVOR}"
+    msg "JOB_FILE:   ${JOB_FILE}"
+    msg "VM_IMAGE:   ${VM_IMAGE}"
+    msg "VM_FLAVOR:  ${VM_FLAVOR}"
 fi
 
 [[ -e ${JOB_FILE} ]] || die "HTCondor job submission file '${JOB_FILE}' does not exist"
@@ -95,12 +95,12 @@ JOB_SCRIPT="$(grep '^[^#]*Executable\s*=' ${JOB_FILE} | cut -d= -f2 | awk '{prin
 
 # Call cansub with --nopost simply to share the image and translate image
 # and flavor names to their IDs, which is what canfar_job_validate expects.
-[[ -n ${VERBOSE} ]] && msg "Will run cansub ${JOB_FILE} ${VM_IMAGE} ${VM_FLAVOR} --nopost"
+[[ -n ${VERBOSE} ]] && msg "Running: cansub ${JOB_FILE} ${VM_IMAGE} ${VM_FLAVOR} --nopost"
 VM_IMAGE_AND_FLAVOR_IDS=$(cansub ${JOB_FILE} ${VM_IMAGE} ${VM_FLAVOR} --nopost) \
     || die "failed to share image and determine image/flavor IDs"
 
 # big string for the job
-[[ -n ${VERBOSE} ]] && msg "Will run canfar_job_validate ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS}"
+[[ -n ${VERBOSE} ]] && msg "Running: canfar_job_validate ${JOB_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS}"
 JOB=$(canfar_job_validate ${JOB_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS}) \
     || die "failed to validate job with submission file: ${JOB_FILE}"
 
