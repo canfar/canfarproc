@@ -68,7 +68,7 @@ canfar_install_condor() {
     local cv=$(condor_version 2> /dev/null | awk '/BuildID/ {print $2}')
     # 8.4.5 has a critical bug that does not work with dynamic slots
     [[ -n ${cv} ]] && [[ ${cv} != 8.4.5 ]] && msg "condor is already installed" && return 0
-    [[ ${EUID} -ne 0 ]] || die "you must run this script as root or with sudo"    
+    [[ ${EUID} -ne 0 ]] && die "you must run this script as root or with sudo"    
     msg "installing/updating condor"
     # determine os
     if yum --version > /dev/null 2>&1 ; then
@@ -86,7 +86,7 @@ canfar_setup_workdir() {
 
     msg "setting up working ephemeral directory on ${workdir}"
     if ! mount | grep -q ${ephemdir}; then
-	[[ ${EUID} -ne 0 ]] || die "you must run this script as root or with sudo"	
+	[[ ${EUID} -ne 0 ]] && die "you must run this script as root or with sudo"	
 	msg "ephemeral partition not mounted trying"
 	mkdir -p ${ephemdir}
 	mount /dev/vdb ${ephemdir} || \
