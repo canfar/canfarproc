@@ -25,7 +25,7 @@ Create a local user with propagated keys and sudo privileges. Run as sudo.
 create_user() {
     local username=$1
     local sshdir=/home/${username}/.ssh
-    [[ ${EUID} -ne 0 ]] || die "you must run this script as root or with sudo"    
+    [[ ${EUID} -ne 0 ]] && die "you must run this script as root or with sudo"    
     useradd -m -s /bin/bash -d /home/${username} ${username} || die "failed to create user ${username}"
     # centos || ubuntu proof
     usermod -a -G wheel ${username} 2> /dev/null || usermod -a -G sudo ${username}

@@ -26,7 +26,7 @@ Prepare a VM for batch on CANFAR:
 canfar_install_condor_rpm() {
     msg "rpm/yum based distribution detected"
     local rh_vers=$(rpm -qa \*-release | grep -Ei "redhat|centos|sl" | cut -d "-" -f3)
-    [[ ${EUID} -ne 0 ]] || die "you must run this script as root or with sudo"
+    [[ ${EUID} -ne 0 ]] && die "you must run this script as root or with sudo"
     if [[ -n ${rh_vers} ]]; then
 	msg "distribution version ${rh_vers} detected, adding condor yum repo"
 	rpm --import https://research.cs.wisc.edu/htcondor/yum/RPM-GPG-KEY-HTCondor || die "failed to import HTCondor GPG key"
