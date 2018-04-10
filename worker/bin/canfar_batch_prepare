@@ -10,7 +10,7 @@ msg() {
 }
 
 die() {
-    echo "${EXEC_NAME} Error: $1" 1>&2
+    echo "${EXEC_NAME} ERROR: $1" 1>&2
     exit 1
 }
 
@@ -26,7 +26,6 @@ Prepare a VM for batch on CANFAR:
 canfar_install_condor_rpm() {
     msg "rpm/yum based distribution detected"
     local rh_vers=$(rpm -qa \*-release | grep -Ei "redhat|centos|sl" | cut -d "-" -f3)
-    [[ ${EUID} -ne 0 ]] && die "you must run this script as root or with sudo"
     if [[ -n ${rh_vers} ]]; then
 	msg "distribution version ${rh_vers} detected, adding condor yum repo"
 	rpm --import https://research.cs.wisc.edu/htcondor/yum/RPM-GPG-KEY-HTCondor || die "failed to import HTCondor GPG key"
@@ -50,7 +49,6 @@ canfar_install_condor_deb() {
     msg "apt/dpkg distribution detected assume debian wheezy"
     export DEBIAN_FRONTEND=noninteractive
     local condordeb="deb http://research.cs.wisc.edu/htcondor/debian/stable/ wheezy contrib"
-    [[ ${EUID} -ne 0 ]] || die "you must run this script as root or with sudo"
     if [[ -d /etc/apt/sources.list.d ]]; then
 	echo "${condordeb}" > /etc/apt/sources.list.d/condor.list
     else
@@ -70,6 +68,7 @@ canfar_install_condor() {
     local cv=$(condor_version 2> /dev/null | awk '/BuildID/ {print $2}')
     # 8.4.5 has a critical bug that does not work with dynamic slots
     [[ -n ${cv} ]] && [[ ${cv} != 8.4.5 ]] && msg "condor is already installed" && return 0
+    [[ ${EUID} -ne 0 ]] || die "you must run this script as root or with sudo"    
     msg "installing/updating condor"
     # determine os
     if yum --version > /dev/null 2>&1 ; then
@@ -86,8 +85,8 @@ canfar_setup_workdir() {
     local workdir="${ephemdir}/work"
 
     msg "setting up working ephemeral directory on ${workdir}"
-    [[ ${EUID} -ne 0 ]] || die "you must run this script as root or with sudo"
-    if ! mount | grep -q ${ephemdir}; then 
+    if ! mount | grep -q ${ephemdir}; then
+	[[ ${EUID} -ne 0 ]] || die "you must run this script as root or with sudo"	
 	msg "ephemeral partition not mounted trying"
 	mkdir -p ${ephemdir}
 	mount /dev/vdb ${ephemdir} || \
