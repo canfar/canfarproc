@@ -3,7 +3,9 @@
 # Shell script to prepare a VM for batch at interactive time
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.1.2
+EXEC_VERSION=0.1.3
+
+CONDOR_MIN_VERSION=8.6
 
 msg() {
     echo " >> ${EXEC_NAME}: $1"
@@ -21,6 +23,25 @@ Prepare a VM for batch on CANFAR:
 2. Setup scratch space (/mnt/scratch) to test
 "
     exit
+}
+# routine to compare semantic versioning
+#https://stackoverflow.com/questions/4023830/how-to-compare-two-strings-in-dot-separated-version-format-in-bash
+compare_version () {
+    [[ $1 == $2 ]] && return 0
+    local IFS=.
+    local i ver1=($1) ver2=($2)
+    # fill empty fields in ver1 with zeros
+    for ((i=${#ver1[@]}; i<${#ver2[@]}; i++)); do
+        ver1[i]=0
+    done
+    for ((i=0; i<${#ver1[@]}; i++)); do
+        # fill empty fields in ver2 with zeros
+        [[ -z ${ver2[i]} ]] && ver2[i]=0
+	
+        ((10#${ver1[i]} > 10#${ver2[i]})) && return 1
+        ((10#${ver1[i]} < 10#${ver2[i]})) && return 2
+    done
+    return 0
 }
 
 canfar_install_condor_rpm() {
@@ -66,8 +87,10 @@ canfar_install_condor_deb() {
 # avoid ruby bloat and new language to learn from puppet/chef
 canfar_install_condor() {
     local cv=$(condor_version 2> /dev/null | awk '/BuildID/ {print $2}')
-    # 8.4.5 has a critical bug that does not work with dynamic slots
-    [[ -n ${cv} ]] && [[ ${cv} != 8.4.5 ]] && msg "condor is already installed" && return 0
+    if [[ -n ${cv} ]] && compare_version ${cv} ${CONDOR_MIN_VERSION}; then
+	msg "condor ${CONDOR_MIN_VERSION} is already installed"
+	return 0
+    fi
     [[ ${EUID} -ne 0 ]] && die "you must run this script as root or with sudo"    
     msg "installing/updating condor"
     # determine os
