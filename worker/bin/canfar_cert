@@ -37,8 +37,8 @@ usage() {
     echo $"Usage: ${EXEC_NAME} [OPTION]
 Try to generate a new proxy cert with minimum validity for processing
 
-  -c, --cert          	    specify the CANFAR cert path (default: ${CANFAR_CERT_DEFAULT_PATH})
-  -u, --user          	    specify the CANFAR username to fetch the cert for (default: ${USER})
+  -c, --cert=<path>         CANFAR cert path (default: ${CANFAR_CERT_DEFAULT_PATH})
+  -u, --user=<user>         CANFAR username to use to fetch the cert for (default: ${USER})
   -v, --verbose             verbose for debugging
   -h, --help                display help and exit
   -V, --version             output version information and exit
@@ -130,7 +130,7 @@ else
     canfar_get_cert ${CANFAR_CERT_MAX_VALID} && valid=yes
 fi
 
-[[ ${valid} == no ]] && die "impossible to fetch a valid CANFAR cert automatically"
+[[ ${valid} == no ]] && die "could not get a CANFAR cert for user ${CANFAR_USER}"
 
 # hack to copy to default location for vos
 if [[ -e ${CANFAR_CERT_PATH} ]]; then
