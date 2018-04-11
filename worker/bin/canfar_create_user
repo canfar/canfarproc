@@ -1,7 +1,7 @@
 #!/bin/bash
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.1.1
+EXEC_VERSION=0.1.2
 
 msg() {
     echo " >> ${EXEC_NAME}: $1"
@@ -13,8 +13,9 @@ die() {
 }
 
 usage() {
-    echo $"Usage: ${EXEC_NAME}
+    echo $"Usage: ${EXEC_NAME} USERNAME
 Create a local user with propagated keys and sudo privileges. Run as sudo.
+
   -h, --help                display help and exit
   -v, --version             output version information and exit
 "
@@ -28,8 +29,6 @@ create_user() {
     useradd -m -s /bin/bash -d /home/${username} ${username} || die "failed to create user ${username}"
     # centos || ubuntu proof
     usermod -a -G wheel ${username} 2> /dev/null || usermod -a -G sudo ${username}
-    msg "Enter the CANFAR password for ${username} below"
-    passwd ${username}
     mkdir -p ${sshdir}
     chmod 700 ${sshdir}
     # ouch - nasty
