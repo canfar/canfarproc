@@ -24,10 +24,9 @@ Prepare a VM with a proper ephemeral disk
 canfar_setup_scratch() {
     local ephemdir="/mnt"
     local scratchdir="${ephemdir}/scratch"
-
+    [[ ${EUID} -ne 0 ]] && die "you must run this script as root or with sudo"
     msg "setting up scratch directory on ${scratchdir}"
     if ! mount | grep -q ${ephemdir}; then
-	[[ ${EUID} -ne 0 ]] && die "you must run this script as root or with sudo"
 	msg "ephemeral partition not mounted trying"
 	mkdir -p ${ephemdir}
 	mount /dev/vdb ${ephemdir} || \
