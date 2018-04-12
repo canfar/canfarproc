@@ -1,7 +1,7 @@
 #!/bin/bash
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.1.1
+EXEC_VERSION=0.1.2
 
 msg() {
     echo " >> ${EXEC_NAME}: $1"
@@ -23,7 +23,7 @@ GITURL="https://github.com/canfar/canfarproc/raw/master/worker/bin"
 
 [[ ${EUID} -ne 0 ]] && die "you must run this script as root or with sudo"	
 
-SCRIPTS="batch_prepare create_user dotnetrc cert update"
+SCRIPTS="batch_prepare create_user dotnetrc cert update setup_scratch"
 
 for script in ${SCRIPTS} ; do
     cs=canfar_${script}
