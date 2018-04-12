@@ -66,4 +66,4 @@ done
 [[ ${EUID} -ne 0 ]] && die "you must run this script as root or with sudo"
 username=$1
 [[ -z ${username} ]] && read -p "Enter the CANFAR username: " username
-create_user ${username}
+create_user ${username} && msg "user ${username} created"
