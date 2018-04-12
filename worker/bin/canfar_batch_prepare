@@ -3,7 +3,7 @@
 # Shell script to prepare a VM for batch at interactive time
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.1.3
+EXEC_VERSION=0.1.5
 
 CONDOR_MIN_VERSION=8.6
 
@@ -18,30 +18,12 @@ die() {
 
 usage() {
     echo $"Usage: ${EXEC_NAME}
-Prepare a VM for batch on CANFAR:
+Prepare a VM for batch on CANFAR.
 1. Install condor if VM is either RPM or DEB based
-2. Setup scratch space (/mnt/scratch) to test
+2. Disable SELinux
+3. Add network stuff for canfar
 "
     exit
-}
-# routine to compare semantic versioning
-#https://stackoverflow.com/questions/4023830/how-to-compare-two-strings-in-dot-separated-version-format-in-bash
-compare_version () {
-    [[ $1 == $2 ]] && return 0
-    local IFS=.
-    local i ver1=($1) ver2=($2)
-    # fill empty fields in ver1 with zeros
-    for ((i=${#ver1[@]}; i<${#ver2[@]}; i++)); do
-        ver1[i]=0
-    done
-    for ((i=0; i<${#ver1[@]}; i++)); do
-        # fill empty fields in ver2 with zeros
-        [[ -z ${ver2[i]} ]] && ver2[i]=0
-	
-        ((10#${ver1[i]} > 10#${ver2[i]})) && return 1
-        ((10#${ver1[i]} < 10#${ver2[i]})) && return 2
-    done
-    return 0
 }
 
 canfar_install_condor_rpm() {
@@ -76,10 +58,10 @@ canfar_install_condor_deb() {
 	echo "${condordeb}" >> /etc/apt/sources.list
     fi
     wget -qO - http://research.cs.wisc.edu/htcondor/debian/HTCondor-Release.gpg.key | apt-key add - > /dev/null
-    apt-get -q update -y
+    apt-get -q update -y  2> /dev/null || apt update -q -y 2>/dev/null
     msg "installing condor..."
     # htcondor is the name of the package in debian repo, condor is the name in the condor repo
-    apt-get -q install -y condor || die "condor didn't install properly"
+    apt-get -q install -y condor || apt install -q -y condor || die "condor didn't install properly"
 }
 
 
@@ -87,11 +69,11 @@ canfar_install_condor_deb() {
 # avoid ruby bloat and new language to learn from puppet/chef
 canfar_install_condor() {
     local cv=$(condor_version 2> /dev/null | awk '/BuildID/ {print $2}')
-    if [[ -n ${cv} ]] && compare_version ${cv} ${CONDOR_MIN_VERSION}; then
+    if [[ -n ${cv} ]] && [[ ${CONDOR_MIN_VERSION} = $(echo -e "$1\n$2" | sort -V | head -n1) ]] ; then
 	msg "condor ${CONDOR_MIN_VERSION} is already installed"
 	return 0
     fi
-    [[ ${EUID} -ne 0 ]] && die "you must run this script as root or with sudo"    
+    [[ ${EUID} -ne 0 ]] && die "you must run this script as root or with sudo"
     msg "installing/updating condor"
     # determine os
     if yum --version > /dev/null 2>&1 ; then
@@ -103,21 +85,46 @@ canfar_install_condor() {
     fi
 }
 
-canfar_setup_workdir() {
-    local ephemdir="/mnt"
-    local workdir="${ephemdir}/work"
-
-    msg "setting up working ephemeral directory on ${workdir}"
-    if ! mount | grep -q ${ephemdir}; then
-	[[ ${EUID} -ne 0 ]] && die "you must run this script as root or with sudo"	
-	msg "ephemeral partition not mounted trying"
-	mkdir -p ${ephemdir}
-	mount /dev/vdb ${ephemdir} || \
-	    die "Not a VM with ephemeral partition. Terminate and choose another flavor"
-    fi    
-    mkdir -p ${workdir}
-    chmod 777 ${workdir}
+canfar_disable_selinux() {
+    # selinux not friendly with condor in our configuration
+    # it is enabled on RHEL images by default
+    if getenforce > /dev/null 2>&1 && [[ $(getenforce) != Disabled ]]; then
+	msg "disabling selinux"
+	[[ -e /etc/selinux/config ]] && \
+	    sed -i -e 's/^SELINUX=.*/SELINUX=disabled/g' /etc/selinux/config
+	setenforce 0
+    fi
 }
+
+canfar_setup_network() {
+    # tuned tcp stack for better networking experience with condor and VMs
+    mkdir -p  /etc/sysctl.d
+    cat > /etc/sysctl.d/20-canfar-batch.conf <<EOF
+kernel.numa_balancing = 0
+net.core.somaxconn = 1000
+net.core.netdev_max_backlog = 5000
+net.core.rmem_max = 16777216
+net.core.wmem_max = 16777216
+net.ipv4.neigh.default.gc_thresh1 = 2048
+net.ipv4.neigh.default.gc_thresh2 = 3072
+net.ipv4.neigh.default.gc_thresh3 = 4096
+net.ipv4.tcp_keepalive_time=200
+net.ipv4.tcp_keepalive_intvl=200
+net.ipv4.tcp_keepalive_probes=5
+net.ipv4.tcp_wmem = 4096 12582912 16777216
+net.ipv4.tcp_rmem = 4096 12582912 16777216
+net.ipv4.tcp_max_syn_backlog = 8096
+net.ipv4.tcp_slow_start_after_idle = 0
+net.ipv4.tcp_tw_reuse = 1
+vm.dirty_ratio = 80
+vm.dirty_background_ratio = 5
+vm.dirty_expire_centisecs = 12000
+vm.swappiness = 0
+EOF
+
+    sysctl --system
+}
+
 
 # Store all options
 OPTS=$(getopt \
@@ -139,6 +146,6 @@ while true; do
     shift
 done
 
-export PATH="/sbin:/usr/sbin:${PATH}"
-canfar_setup_workdir
 canfar_install_condor
+canfar_disable_selinux
+canfar_setup_network
