@@ -64,7 +64,7 @@ canfar_configure_condor_file() {
 
 canfar_configure_condor_worker() {
     local condorconfig=$(canfar_configure_condor_file worker)
-    cat > ${condorconfig} <<EOF
+    cat >> ${condorconfig} <<EOF
 CONDOR_HOST = ${CM_HOST_NAME}
 ALLOW_WRITE = \$(FULL_HOSTNAME), \$(CONDOR_HOST), \$(IP_ADDRESS)
 CCB_ADDRESS = \$(CONDOR_HOST)
@@ -83,7 +83,7 @@ EOF
 
 canfar_configure_condor_cloudscheduler() {
     local condorconfig=$(canfar_configure_condor_file cloudscheduler)
-    cat > ${condorconfig} <<EOF
+    cat >> ${condorconfig} <<EOF
 VMType = ${VM_IMAGE}
 STARTD_ATTRS = COLLECTOR_HOST_STRING VMType \$(STARTD_ATTRS)
 EOF
@@ -107,6 +107,17 @@ canfar_configure_condor_execdir() {
     chown condor:condor -R ${VM_EPHEMERAL_DIR}
     chmod ugo+rwxt ${execdir}
     echo "EXECUTE = ${execdir}" >> $(canfar_configure_condor_file worker)
+}
+
+canfar_configure_condor_env() {
+    # Workaround for condor not setting $HOME for worker sessions.
+    msg "setting up a job wrapper for more consistent shell environment"
+    local job_wrapper="/var/lib/condor/jobwrapper.sh"
+    cat > ${job_wrapper} <<EOF
+export HOME=$(eval echo ~\$USER)
+exec "\$@"
+EOF
+    echo "USER_JOB_WRAPPER = ${job_wrapper}" >> $(canfar_configure_condor_file worker)
 }
 
 canfar_configure_condor_user() {
@@ -154,8 +165,9 @@ canfar_setup_batch_condor() {
     service condor stop
     canfar_configure_condor_worker
     canfar_configure_condor_execdir
-    canfar_configure_condor_cloudscheduler
+    canfar_configure_condor_env    
     canfar_configure_condor_user
+    canfar_configure_condor_cloudscheduler
     # cleaning up condor logs at each new launched VM
     rm -rf $(condor_config_val LOG)/*
     service condor start
