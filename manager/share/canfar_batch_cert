@@ -1,11 +1,18 @@
 #!/bin/bash
 
 # script to renew a cert and move it to ~/.ssl/cadcproxy.pem before each condor job
-# very much a hack to allow transitioning
+# very much a hack to allow transitioning for  anonymous canfar
 
-type -P canfar_cert > /dev/null && canfar_cert $1 && exit 0
+cert=$1
 
-[[ $# -lt 1 ]] && echo 2> "ERROR: cert hook missing cert path"
+# use canfar_cert to find proxy
+type -P canfar_cert > /dev/null && canfar_cert ${cert} && exit 0
+
+if [[ -z ${cert} ]] || [[ ! -e ${cert} ]]; then
+    echo "WARNING: no certificate for CANFAR VOSpace access" 1>&2
+    exit 0
+fi
+
 mkdir -p ~/.ssl
-cadc-get-cert --cert $1 --days-valid=${2:-15}
-mv $1 ~/.ssl/cadcproxy.pem
+cadc-get-cert --cert ${cert} --days-valid=${2:-15}
+mv ${cert} ~/.ssl/cadcproxy.pem
