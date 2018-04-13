@@ -8,11 +8,11 @@ EXEC_VERSION=0.1.5
 CONDOR_MIN_VERSION=8.6
 
 msg() {
-    echo " >> ${EXEC_NAME}: $1"
+    echo -e " >> ${EXEC_NAME}: $1"
 }
 
 die() {
-    echo "${EXEC_NAME} ERROR: $1" 1>&2
+    echo -e " >> ${EXEC_NAME} ERROR: $1" 1>&2
     exit 1
 }
 

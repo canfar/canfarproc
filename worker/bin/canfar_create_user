@@ -4,11 +4,11 @@ EXEC_NAME=$(basename $0 .${0##*.})
 EXEC_VERSION=0.1.2
 
 msg() {
-    echo " >> ${EXEC_NAME}: $1"
+    echo -e " >> ${EXEC_NAME}: $1"
 }
 
 die() {
-    echo "${EXEC_NAME} ERROR: $1" 1>&2
+    echo -e " >> ${EXEC_NAME} ERROR: $1" 1>&2
     exit 1
 }
 
