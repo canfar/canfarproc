@@ -7,7 +7,7 @@
 # submit jobs directly on the head node for testing purposes.
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.2.3
+EXEC_VERSION=0.3.0
 
 msg() {
     echo -e " >> ${EXEC_NAME}: $1"
@@ -24,7 +24,7 @@ die() {
 
 usage() {
     echo $"Usage: ${EXEC_NAME} [OPTION] JOB_FILE VM_IMAGE VM_FLAVOR
-Submit a CANFAR processing job
+Submit a CANFAR batch job
 
   JOB_FILE       HTCondor job submission file
   VM_IMAGE       OpenStack VM image used to process jobs (name or ID)
@@ -36,13 +36,12 @@ Submit a CANFAR processing job
   -v, --version             output version information and exit
   -V, --verbose             verbose mode for debugging
 
-
-Note: Prior to running this script the following OpenStack environment
-variables must be set (e.g., by sourcing your openrc file):
+Import environment variables to be set:
   OS_AUTH_URL
+  OS_TENANT_ID
+  OS_TENANT_NAME
   OS_USERNAME
   OS_PASSWORD
-  OS_TENANT_NAME     (this must be the tenant that owns the image)
 "
     exit
 }
@@ -105,6 +104,12 @@ JOB_SCRIPT="$(grep '^[^#]*Executable\s*=' ${JOB_FILE} | cut -d= -f2 | awk '{prin
     || die "Executable '${JOB_SCRIPT}' extracted from ${JOB_FILE} does not exist on batch"
 
 [[ -n ${VERBOSE} ]] && msg "JOB_SCRIPT: ${JOB_SCRIPT}"
+
+if [[ -z ${OS_AUTH_URL} ]] || [[ -z ${OS_TENANT_ID} ]] || [[ -z ${OS_TENANT_NAME} ]] || \
+    [[ -z ${OS_USERNAME} ]] || [[ -z ${OS_PASSWORD} ]]; then
+    rcfiles=$(ls -1 ~/canfar-*-openrc.sh)
+    die "OpenStack environment variables not set\n Try sourcing either:\n${rcfiles}"
+fi
 
 # Call cansub with --nopost simply to share the image and translate image
 # and flavor names to their IDs, which is what canfar_job_validate expects.
