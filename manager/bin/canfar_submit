@@ -26,6 +26,7 @@ Submit a CANFAR processing job
   VM_IMAGE       OpenStack VM image used to process jobs (name or ID)
   VM_FLAVOR      OpenStack VM resource flavor used to process jobs
 
+  -c, --cert=<path>         specify path for proxy to access VOSpace (default: ${HOME}/.ssl/cadcproxy.pem)
   -u, --user=<username>     specify username to run the jobs (default: automatically created)
   -h, --help                display help and exit
   -v, --version             output version information and exit
@@ -46,7 +47,8 @@ VERBOSE=
 
 # Store all options
 OPTS=$(getopt \
-    -o u:hvV \
+    -o c:u:hvV \
+    -l cert: \	   
     -l user: \
     -l help \
     -l version \
@@ -56,8 +58,10 @@ OPTS=$(getopt \
 eval set -- "${OPTS}"
 
 JOB_USER=
+CERT_USER=
 while true; do
     case "$1" in
+	-c | --cert) CERT_USER="--cert=${2##=}"; shift ;;	
 	-u | --user) JOB_USER="--user=${2##=}"; shift ;;
 	-h | --help) usage ;;
 	-v | --version) echo ${EXEC_VERSION}; exit ;;
@@ -69,6 +73,10 @@ while true; do
 done
 
 [[ $# -eq 3 ]] || usage
+
+if [[ -z ${CERT_USER} ]] && [[ ! -e ${HOME}.ssl/cadcproxy.pem ]]; then
+    msg "WARNING: you are submitting jobs without a VOSPace access certificate"
+fi
 
 JOB_FILE=$1
 VM_IMAGE=$2
@@ -100,8 +108,8 @@ VM_IMAGE_AND_FLAVOR_IDS=$(cansub ${JOB_FILE} ${VM_IMAGE} ${VM_FLAVOR} --nopost) 
     || die "failed to share image and determine image/flavor IDs"
 
 # big string for the job
-[[ -n ${VERBOSE} ]] && msg "Running: canfar_job_validate ${JOB_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS}"
-JOB=$(canfar_job_validate ${JOB_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS}) \
+[[ -n ${VERBOSE} ]] && msg "Running: canfar_job_validate ${JOB_USER} ${CERT_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS}"
+JOB=$(canfar_job_validate ${JOB_USER} ${CERT_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS}) \
     || die "failed to validate job with submission file: ${JOB_FILE}"
 
 echo "${JOB}" | condor_submit || die "failed to submit job to queue"
