@@ -23,6 +23,7 @@ import requests
 import sys
 import uuid
 import logging
+import warnings
 #logging.basicConfig()
 logging.disable(logging.CRITICAL)
 
@@ -78,13 +79,13 @@ def make_cloud_config(conf_script, pubkey, output_yml, cert_script,
     # - inject a public ssh key into the generic user account
     # - write and execute the cloud scheduler configuration script
     # - image_name and image_user are used by canfar_batch_init to
-    #   set the VMType. If not specified defaults to $HOSTNAME and $USER 
+    #   set the VMType. If not specified defaults to $HOSTNAME and $USER
 
     # the full output path name of the configuration script when copied
     # into the VM
     conf_script_path ='/usr/bin/' + os.path.basename(conf_script)
     cert_script_path ='/usr/bin/' + os.path.basename(cert_script)
-    
+
     # load script content
     conf_script_content_raw = open(conf_script,'r').readlines()
     conf_script_content = "".join("      "+l for l in conf_script_content_raw)
@@ -206,9 +207,8 @@ try:
         certpath = os.path.join(os.environ['HOME'],'.ssl','cadcproxy.pem')
 
     if not os.path.isfile(certpath):
-        CREATE A FAKE FILE TO INJECT
-        raise Exception("did not find certificate at %s" % certpath)
-            
+        warnings.warn("Could not find a cert at %s, no VOSPace write access" % certpath)
+
     jobfile = args.jobfile
     jobscript = args.jobscript
 
@@ -268,7 +268,7 @@ flavor_id: %s''' % (auth['auth_url'],auth['username'],auth['tenant_name'],auth['
         found = re.search(regex, jobfile_data, re.MULTILINE)
         if not found:
             jobfile_data = "%s = %s\n" % (param, param_preset[param]) + jobfile_data
-    
+
     # Re-write 'Executable' line since the proc web service will have
     # placed it somewhere different from the user's original location
     if args.verbose:
@@ -280,11 +280,18 @@ flavor_id: %s''' % (auth['auth_url'],auth['username'],auth['tenant_name'],auth['
                            'Executable = %s' % jobscript,
                            jobfile_data,flags=re.MULTILINE)
 
-    jobfile_data,c =  re.subn('^\s*transfer_input_files\s*=(.*)',
-                              r'transfer_input_files = \1, %s, %s' % (certscript, certpath),
-                              jobfile_data, flags=re.MULTILINE)
-    if (c == 0):
-        jobfile_data = 'transfer_input_files = %s, %s\n' % (certscript, certpath) + jobfile_data
+    if os.path.isfile(certpath):
+        jobfile_data,c =  re.subn('^\s*transfer_input_files\s*=(.*)',
+                                  r'transfer_input_files = \1, %s, %s' % (certscript, certpath),
+                                  jobfile_data, flags=re.MULTILINE)
+        if (c == 0):
+            jobfile_data = 'transfer_input_files = %s, %s\n' % (certscript, certpath) + jobfile_data
+    else:
+        jobfile_data,c =  re.subn('^\s*transfer_input_files\s*=(.*)',
+                                  r'transfer_input_files = \1, %s' % (certscript),
+                                  jobfile_data, flags=re.MULTILINE)
+        if (c == 0):
+            jobfile_data = 'transfer_input_files = %s\n' % (certscript) + jobfile_data
 
     # determine the name of the image from its UUID, and the name
     # of the tenant that owns it. First we get a glance client to
