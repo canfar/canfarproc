@@ -6,11 +6,11 @@ EXEC_NAME=$(basename $0 .${0##*.})
 EXEC_VERSION=0.1.0
 
 msg() {
-    echo " >> ${EXEC_NAME}: $1"
+    echo -e " >> ${EXEC_NAME}: $1"
 }
 
 die() {
-    echo "${EXEC_NAME} ERROR: $1" 1>&2
+    echo -e " >> ${EXEC_NAME} ERROR: $1" 1>&2
     exit 1
 }
 
@@ -33,7 +33,7 @@ canfar_setup_scratch() {
 	    die "This is not a VM with ephemeral partition. Terminate and choose another flavor"
     fi
     mkdir -p ${scratchdir}
-    chmod 777 ${scratchdir}
+    chmod ugo+rwxt ${scratchdir}
 }
 
 # Store all options
