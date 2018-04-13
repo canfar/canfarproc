@@ -78,8 +78,8 @@ done
 
 [[ $# -eq 3 ]] || usage
 
-[[ -z ${CERT_USER} ]] && [[ ! -e ${HOME}.ssl/cadcproxy.pem ]] && \
-    warn "WARNING: you are submitting jobs without a VOSPace access certificate"
+[[ -z ${CERT_USER} ]] && [[ ! -e ${HOME}/.ssl/cadcproxy.pem ]] && \
+    warn "you are submitting jobs without a VOSPace access certificate"
 
 JOB_FILE=$1
 VM_IMAGE=$2
