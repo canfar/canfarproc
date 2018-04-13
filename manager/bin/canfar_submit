@@ -7,14 +7,18 @@
 # submit jobs directly on the head node for testing purposes.
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.2.1
+EXEC_VERSION=0.2.3
 
 msg() {
-    echo " >> ${EXEC_NAME}: $1"
+    echo -e " >> ${EXEC_NAME}: $1"
+}
+
+warn() {
+    echo -e " >> ${EXEC_NAME} WARNING: $1"
 }
 
 die() {
-    echo "ERROR ${EXEC_NAME}: $1" 1>&2
+    echo -e " >> ${EXEC_NAME} ERROR: $1" 1>&2
     exit 1
 }
 
@@ -48,7 +52,7 @@ VERBOSE=
 # Store all options
 OPTS=$(getopt \
     -o c:u:hvV \
-    -l cert: \	   
+    -l cert: \
     -l user: \
     -l help \
     -l version \
@@ -61,7 +65,7 @@ JOB_USER=
 CERT_USER=
 while true; do
     case "$1" in
-	-c | --cert) CERT_USER="--cert=${2##=}"; shift ;;	
+	-c | --cert) CERT_USER="--cert=${2##=}"; shift ;;
 	-u | --user) JOB_USER="--user=${2##=}"; shift ;;
 	-h | --help) usage ;;
 	-v | --version) echo ${EXEC_VERSION}; exit ;;
@@ -74,9 +78,8 @@ done
 
 [[ $# -eq 3 ]] || usage
 
-if [[ -z ${CERT_USER} ]] && [[ ! -e ${HOME}.ssl/cadcproxy.pem ]]; then
-    msg "WARNING: you are submitting jobs without a VOSPace access certificate"
-fi
+[[ -z ${CERT_USER} ]] && [[ ! -e ${HOME}.ssl/cadcproxy.pem ]] && \
+    warn "WARNING: you are submitting jobs without a VOSPace access certificate"
 
 JOB_FILE=$1
 VM_IMAGE=$2
@@ -86,6 +89,8 @@ if [[ -n ${VERBOSE} ]]; then
     msg "JOB_FILE:   ${JOB_FILE}"
     msg "VM_IMAGE:   ${VM_IMAGE}"
     msg "VM_FLAVOR:  ${VM_FLAVOR}"
+    msg "JOB_USER:   ${JOB_USER}"
+    msg "CERT_USER:  ${CERT_USER}"
 fi
 
 [[ -e ${JOB_FILE} ]] || die "HTCondor job submission file '${JOB_FILE}' does not exist"
@@ -104,12 +109,12 @@ JOB_SCRIPT="$(grep '^[^#]*Executable\s*=' ${JOB_FILE} | cut -d= -f2 | awk '{prin
 # Call cansub with --nopost simply to share the image and translate image
 # and flavor names to their IDs, which is what canfar_job_validate expects.
 [[ -n ${VERBOSE} ]] && msg "Running: cansub ${JOB_FILE} ${VM_IMAGE} ${VM_FLAVOR} --nopost"
-VM_IMAGE_AND_FLAVOR_IDS=$(cansub ${JOB_FILE} ${VM_IMAGE} ${VM_FLAVOR} --nopost) \
-    || die "failed to share image and determine image/flavor IDs"
+VM_IMAGE_AND_FLAVOR_IDS=$(cansub ${JOB_FILE} ${VM_IMAGE} ${VM_FLAVOR} --nopost 2>&1) \
+    || die "VM sharing failed with the error below\n >> cansub ${VM_IMAGE_AND_FLAVOR_IDS}"
 
 # big string for the job
 [[ -n ${VERBOSE} ]] && msg "Running: canfar_job_validate ${JOB_USER} ${CERT_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS}"
-JOB=$(canfar_job_validate ${JOB_USER} ${CERT_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS}) \
-    || die "failed to validate job with submission file: ${JOB_FILE}"
+JOB=$(canfar_job_validate ${JOB_USER} ${CERT_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS} 2>&1) \
+    || die "submission failed with the error below\n >> canfar_job_validate ${JOB}"
 
 echo "${JOB}" | condor_submit || die "failed to submit job to queue"
