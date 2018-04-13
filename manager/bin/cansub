@@ -209,9 +209,9 @@ jobscript: %s''' % (auth['auth_url'],auth['username'],auth['tenant_id'],
                 flavor_id = f.id
         if not flavor_id:
             flavor_names = [f.name for f in flavors]
-            msg = "Supplied flavor '%s' is not valid. Must be one of:\n"\
+            msg = "Supplied flavour '%s' is not valid. Available flavours:\n"\
                   % flavor
-            msg = msg + ', '.join(flavor_names)
+            msg = msg + ' \n'.join(flavor_names)
             raise Exception(msg)
 
     # Now POST the job to the service. Note that we strip the '-canfar'
