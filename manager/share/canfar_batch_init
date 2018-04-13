@@ -4,7 +4,7 @@
 # Assumes a debian or fedora based (i.e. ubuntu and centos)
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.1.5
+EXEC_VERSION=0.1.6
 
 # need to specify local ip to bypass unreliable dns on cc clouds.
 #CM_HOST_NAME="batch.canfar.net"
@@ -115,9 +115,11 @@ canfar_configure_condor_env() {
     local job_wrapper="/var/lib/condor/jobwrapper.bash"
     cat > ${job_wrapper} <<EOF
 #!/bin/bash -l
-[ -z "${HOME}" ] && export HOME=$(eval echo ~\$USER)
+[ -z "\${HOME}" ] && export HOME=\$(eval echo ~\$USER)
 exec "\$@"
 EOF
+
+    chmod 755 ${job_wrapper}
     echo "USER_JOB_WRAPPER = ${job_wrapper}" >> $(canfar_configure_condor_file worker)
 }
 
