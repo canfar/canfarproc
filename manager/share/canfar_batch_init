@@ -112,9 +112,10 @@ canfar_configure_condor_execdir() {
 canfar_configure_condor_env() {
     # Workaround for condor not setting $HOME for worker sessions.
     msg "setting up a job wrapper for more consistent shell environment"
-    local job_wrapper="/var/lib/condor/jobwrapper.sh"
+    local job_wrapper="/var/lib/condor/jobwrapper.bash"
     cat > ${job_wrapper} <<EOF
-export HOME=$(eval echo ~\$USER)
+#!/bin/bash -l
+[ -z "${HOME}" ] && export HOME=$(eval echo ~\$USER)
 exec "\$@"
 EOF
     echo "USER_JOB_WRAPPER = ${job_wrapper}" >> $(canfar_configure_condor_file worker)
