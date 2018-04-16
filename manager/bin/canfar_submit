@@ -31,7 +31,7 @@ Submit a CANFAR batch job
   VM_FLAVOR      OpenStack VM resource flavor used to process jobs
 
   -c, --cert=<path>         specify path for proxy to access VOSpace (default: ${HOME}/.ssl/cadcproxy.pem)
-  -u, --user=<username>     specify username to run the jobs (default: automatically created)
+  -u, --user=<username>     specify username executing the jobs (default: automatically guessed)
   -h, --help                display help and exit
   -v, --version             output version information and exit
   -V, --verbose             verbose mode for debugging
@@ -62,6 +62,7 @@ eval set -- "${OPTS}"
 
 JOB_USER=
 CERT_USER=
+
 while true; do
     case "$1" in
 	-c | --cert) CERT_USER="--cert=${2##=}"; shift ;;
@@ -84,14 +85,6 @@ JOB_FILE=$1
 VM_IMAGE=$2
 VM_FLAVOR=$3
 
-if [[ -n ${VERBOSE} ]]; then
-    msg "JOB_FILE:   ${JOB_FILE}"
-    msg "VM_IMAGE:   ${VM_IMAGE}"
-    msg "VM_FLAVOR:  ${VM_FLAVOR}"
-    msg "JOB_USER:   ${JOB_USER}"
-    msg "CERT_USER:  ${CERT_USER}"
-fi
-
 [[ -e ${JOB_FILE} ]] || die "HTCondor job submission file '${JOB_FILE}' does not exist"
 
 # Extract executable
@@ -103,8 +96,6 @@ JOB_SCRIPT="$(grep '^[^#]*Executable\s*=' ${JOB_FILE} | cut -d= -f2 | awk '{prin
 [[ -e ${JOB_SCRIPT} ]] \
     || die "Executable '${JOB_SCRIPT}' extracted from ${JOB_FILE} does not exist on batch"
 
-[[ -n ${VERBOSE} ]] && msg "JOB_SCRIPT: ${JOB_SCRIPT}"
-
 if [[ -z ${OS_AUTH_URL} ]] || [[ -z ${OS_TENANT_ID} ]] || [[ -z ${OS_TENANT_NAME} ]] || \
     [[ -z ${OS_USERNAME} ]] || [[ -z ${OS_PASSWORD} ]]; then
     rcfiles=$(ls -1 ~/canfar-*-openrc.sh)
@@ -113,12 +104,12 @@ fi
 
 # Call cansub with --nopost simply to share the image and translate image
 # and flavor names to their IDs, which is what canfar_job_validate expects.
-[[ -n ${VERBOSE} ]] && msg "Running: cansub ${JOB_FILE} ${VM_IMAGE} ${VM_FLAVOR} --nopost"
+[[ -n ${VERBOSE} ]] && msg "Running cansub ${JOB_FILE} ${VM_IMAGE} ${VM_FLAVOR} --nopost"
 VM_IMAGE_AND_FLAVOR_IDS=$(cansub ${JOB_FILE} ${VM_IMAGE} ${VM_FLAVOR} --nopost 2>&1) \
-    || die "VM sharing failed with the error below\n >> cansub ${VM_IMAGE_AND_FLAVOR_IDS}"
+    || die "cansub failed with the error below\n >> cansub ${VM_IMAGE_AND_FLAVOR_IDS}"
 
 # big string for the job
-[[ -n ${VERBOSE} ]] && msg "Running: canfar_job_validate ${JOB_USER} ${CERT_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS}"
+[[ -n ${VERBOSE} ]] && msg "Running canfar_job_validate ${JOB_USER} ${CERT_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS}"
 JOB=$(canfar_job_validate ${JOB_USER} ${CERT_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS} 2>&1) \
     || die "submission failed with the error below\n >> canfar_job_validate ${JOB}"
 
