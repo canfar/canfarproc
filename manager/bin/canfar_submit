@@ -7,7 +7,7 @@
 # submit jobs directly on the head node for testing purposes.
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.3.0
+EXEC_VERSION=0.3.1
 
 msg() {
     echo -e " >> ${EXEC_NAME}: $1"
@@ -31,7 +31,6 @@ Submit a CANFAR batch job
   VM_FLAVOR      OpenStack VM resource flavor used to process jobs
 
   -c, --cert=<path>         specify path for proxy to access VOSpace (default: ${HOME}/.ssl/cadcproxy.pem)
-  -u, --user=<username>     specify username executing the jobs (default: automatically guessed)
   -h, --help                display help and exit
   -v, --version             output version information and exit
   -V, --verbose             verbose mode for debugging
@@ -50,9 +49,8 @@ VERBOSE=
 
 # Store all options
 OPTS=$(getopt \
-    -o c:u:hvV \
+    -o c:hvV \
     -l cert: \
-    -l user: \
     -l help \
     -l version \
     -l verbose \
@@ -66,7 +64,6 @@ CERT_USER=
 while true; do
     case "$1" in
 	-c | --cert) CERT_USER="--cert=${2##=}"; shift ;;
-	-u | --user) JOB_USER="--user=${2##=}"; shift ;;
 	-h | --help) usage ;;
 	-v | --version) echo ${EXEC_VERSION}; exit ;;
 	-V | --verbose) VERBOSE="--verbose" ;;
@@ -109,8 +106,21 @@ VM_IMAGE_AND_FLAVOR_IDS=$(cansub ${JOB_FILE} ${VM_IMAGE} ${VM_FLAVOR} --nopost 2
     || die "cansub failed with the error below\n >> cansub ${VM_IMAGE_AND_FLAVOR_IDS}"
 
 # big string for the job
-[[ -n ${VERBOSE} ]] && msg "Running canfar_job_validate ${JOB_USER} ${CERT_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS}"
-JOB=$(canfar_job_validate ${JOB_USER} ${CERT_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS} 2>&1) \
-    || die "submission failed with the error below\n >> canfar_job_validate ${JOB}"
+[[ -n ${VERBOSE} ]] && msg "Running canfar_job_validate ${CERT_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS}"
 
-echo "${JOB}" | condor_submit || die "failed to submit job to queue"
+
+jobfile="/tmp/canfar-submit-${USER}-$$.job"
+error=$((canfar_job_validate ${CERT_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS} > ${jobfile}) 2>&1) \
+    || die "submission failed with the error below\n >> canfar_job_validate ${error}"
+
+#JOB=$(canfar_job_validate ${CERT_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS} 2>&1) \
+#    || die "submission failed with the error below\n >> canfar_job_validate ${JOB}"
+
+[[ -n ${VERBOSE} ]] && msg "Running condor_submit ${jobfile}"
+#echo "${JOB}" | condor_submit || die "failed to submit job(s) to queue. Failed job below\n${JOB}"
+condor_submit ${jobfile} || die "failed to submit job(s) to queue. Failed job in ${jobfile}"
+if [[ -n ${VERBOSE} ]]; then
+    msg "Successfully submitted job(s). Job file not removed."
+else
+    rm -f ${jobfile}
+fi
