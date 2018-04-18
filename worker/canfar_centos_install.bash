@@ -9,9 +9,8 @@ yum install bash-completion
 # add EPEL repo for PIP
 yum install -y epel-release
 yum update -y
-# deps for vos stuff
-yum install python-pip fuse-libs idna
-pip install vos vofs
+# deps for vos and cadc stuff
+yum install python-pip fuse-libs idna python-args
 
 curl -sL https://github.com/canfar/canfarproc/raw/master/worker/bin/canfar_update -o /usr/local/bin/canfar_update
 chmod +x /usr/local/bin/canfar_update

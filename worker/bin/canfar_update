@@ -34,4 +34,4 @@ for script in ${SCRIPTS} ; do
 done
 
 msg "updating vos client"
-pip install --upgrade cadcutils vos vofs
+pip install --upgrade cadcutils vos vofs cadcdata
