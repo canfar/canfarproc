@@ -122,7 +122,7 @@ vm.dirty_expire_centisecs = 12000
 vm.swappiness = 0
 EOF
 
-    sysctl --system
+    sysctl --system -q
 }
 
 
