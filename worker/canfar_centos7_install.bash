@@ -1,7 +1,6 @@
-##!/bin/bash
+#!/bin/bash
 
 # This script might turn into a Dockerfile some day
-
 
 # bash love
 yum install bash-completion

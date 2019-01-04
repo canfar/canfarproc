@@ -1,4 +1,4 @@
-##!/bin/bash
+#!/bin/bash
 
 # This script might turn into a Dockerfile some day
 
@@ -27,5 +27,4 @@ usermod -a -G fuse centos
 
 canfar_update
 
-# cleanup
 yum clean all -y
