@@ -4,7 +4,7 @@
 # avoid ruby/python bloat (puppet/chef/ansible) and replace with bash bloat :)
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.1.8
+EXEC_VERSION=0.1.9
 
 CONDOR_MIN_VERSION=8.8
 
@@ -68,9 +68,9 @@ canfar_install_condor_deb() {
 canfar_install_condor_ubuntu() {
     local ubuntu_version=$(lsb_release -sc)
     msg "detected ubuntu ${ubuntu_version}"
-    local condor_version=
+    local condor_version=${CONDOR_MIN_VERSION}
     export DEBIAN_FRONTEND=noninteractive
-    local condordeb="deb http://research.cs.wisc.edu/htcondor/debian/${condor_version}/${ubuntu_version} ${ubuntu_version} contrib"
+    local condordeb="deb http://research.cs.wisc.edu/htcondor/ubuntu/${condor_version}/${ubuntu_version} ${ubuntu_version} contrib"
     if [[ -d /etc/apt/sources.list.d ]]; then
 	echo "${condordeb}" > /etc/apt/sources.list.d/condor.list
     else
