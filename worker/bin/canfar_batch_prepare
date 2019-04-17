@@ -1,11 +1,12 @@
 #!/bin/bash
 
 # Shell script to prepare a VM for batch at interactive time
+# avoid ruby/python bloat (puppet/chef/ansible) and replace with bash bloat :)
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.1.5
+EXEC_VERSION=0.1.8
 
-CONDOR_MIN_VERSION=8.6
+CONDOR_MIN_VERSION=8.8
 
 msg() {
     echo -e " >> ${EXEC_NAME}: $1"
@@ -64,12 +65,28 @@ canfar_install_condor_deb() {
     apt-get -q install -y condor || apt install -q -y condor || die "condor didn't install properly"
 }
 
+canfar_install_condor_ubuntu() {
+    local ubuntu_version=$(lsb_release -sc)
+    msg "detected ubuntu ${ubuntu_version}"
+    local condor_version=
+    export DEBIAN_FRONTEND=noninteractive
+    local condordeb="deb http://research.cs.wisc.edu/htcondor/debian/${condor_version}/${ubuntu_version} ${ubuntu_version} contrib"
+    if [[ -d /etc/apt/sources.list.d ]]; then
+	echo "${condordeb}" > /etc/apt/sources.list.d/condor.list
+    else
+	echo "${condordeb}" >> /etc/apt/sources.list
+    fi
+    wget -qO - https://research.cs.wisc.edu/htcondor/ubuntu/HTCondor-Release.gpg.key | apt-key add - > /dev/null
+    apt-get -q update -y  2> /dev/null || apt update -q -y 2>/dev/null
+    msg "installing condor..."
+    # htcondor is the name of the package in debian repo, condor is the name in the condor repo
+    apt-get -q install -y condor || apt install -q -y condor || die "condor didn't install properly"
+}
 
 # install condor for rpm or deb distros
-# avoid ruby bloat and new language to learn from puppet/chef
 canfar_install_condor() {
     local cv=$(condor_version 2> /dev/null | awk '/BuildID/ {print $2}')
-    if [[ -n ${cv} ]] && [[ ${CONDOR_MIN_VERSION} = $(echo -e "$1\n$2" | sort -V | head -n1) ]] ; then
+    if [[ -n ${cv} ]] && [[ ${CONDOR_MIN_VERSION} = $(echo -e "${CONDOR_MIN_VERSION}\n${cv}" | sort -V | head -n1) ]] ; then
 	msg "condor ${CONDOR_MIN_VERSION} is already installed"
 	return 0
     fi
@@ -78,6 +95,8 @@ canfar_install_condor() {
     # determine os
     if yum --version > /dev/null 2>&1 ; then
 	canfar_install_condor_rpm
+    elif [[ $(lsb_release -si) == Ubuntu ]] ; then
+	canfar_install_condor_ubuntu
     elif apt-get --version > /dev/null 2>&1 || apt --version > /dev/null 2>&1; then
 	canfar_install_condor_deb
     else
