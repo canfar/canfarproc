@@ -40,6 +40,9 @@ msg "updating CADC clients"
 PIP=pip
 grep -q CentOS.*6.  /etc/redhat-release 2> /dev/null && PIP=pip2.7
 
+# centos7 has now python3
+grep -q CentOS.*7.  /etc/redhat-release 2> /dev/null && PIP=pip3.6
+
 # install stuff for ubuntu-18 (bionic) for python3
 grep -q bionic  /etc/os-release 2> /dev/null && PIP=pip3
 
