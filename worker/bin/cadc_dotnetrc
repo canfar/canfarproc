@@ -1,18 +1,18 @@
 #!/bin/bash
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.2.0
+EXEC_VERSION=0.2.2
 
 msg() {
     echo -e " >> ${EXEC_NAME}: $1"
 }
 
 die() {
-    echo -e " >> ${EXEC_NAME} ERROR: $1" 1>&2
+    echo -e " !! ERROR ${EXEC_NAME}: $1" 1>&2
     exit 1
 }
 
-CANFAR_URLS=(
+CADC_URLS=(
     www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca
     www.canfar.phys.uvic.ca
     www.canfar.net
@@ -23,7 +23,7 @@ DOT_NETRC="${HOME}/.netrc"
 
 usage() {
     echo $"Usage: ${EXEC_NAME} [OPTIONS] USERNAME
-Check or create a ${DOT_NETRC} file ready for CANFAR.
+Check or create a ${DOT_NETRC} file ready for CADC web services
 
   -h, --help                display help and exit
   -v, --version             output version information and exit
@@ -32,15 +32,15 @@ Check or create a ${DOT_NETRC} file ready for CANFAR.
 }
 
 # Check .netrc has password. If absent, prompt the user.
-canfar_dotnetrc_password() {
+cadc_dotnetrc_password() {
     local psswd url
     if [[ -f ${DOT_NETRC} ]]; then
-	for url in ${CANFAR_URLS[@]}; do
+	for url in ${CADC_URLS[@]}; do
             psswd=$(awk -v url=${url} '$0 ~ url {print $6;exit}' ${DOT_NETRC} 2> /dev/null)
             [[ -n ${psswd} ]] && echo ${psswd} && return
 	done
     fi
-    local c prompt=" >> CANFAR password: "
+    local c prompt=" >> CADC password: "
     while IFS= read -p "${prompt}" -r -s -n 1 c; do
         [[ ${c} == $'\0' ]] && break
         prompt='*'
@@ -50,23 +50,23 @@ canfar_dotnetrc_password() {
 }
 
 # Check .netrc file has username. If absent, prompt the user.
-canfar_dotnetrc_username() {
+cadc_dotnetrc_username() {
     local user=$1 url
     if [[ -f ${DOT_NETRC} ]]; then
-	for url in ${CANFAR_URLS[@]}; do
+	for url in ${CADC_URLS[@]}; do
             user=$(awk -v url=${url} '$0 ~ url {print $4;exit}' ${DOT_NETRC} 2> /dev/null)
             [[ -n ${user} ]] && echo ${user} && return
 	done
     fi
-    read -p " >> CANFAR username: " user
+    read -p " >> CADC username: " user
     echo ${user}
 }
 
-# Check the user credential from CANFAR
-canfar_dotnetrc_check() {
+# Check the user credential from CADC
+cadc_dotnetrc_check() {
     local url user=${1}
     [[ -e ${DOT_NETRC} ]] || return 1
-    for url in ${CANFAR_URLS[@]}; do
+    for url in ${CADC_URLS[@]}; do
 	if [[ -z ${user} ]]; then
 	    return 1
 	else
@@ -77,26 +77,26 @@ canfar_dotnetrc_check() {
     done
 }
 
-# Append CANFAR sites with username and password to .netrc
+# Append CADC sites with username and password to .netrc
 # Prompt for user inputs.
-canfar_dotnetrc_make() {
+cadc_dotnetrc_make() {
     local user=$1 answ url
-    if canfar_dotnetrc_check ${user}; then
-        msg "${DOT_NETRC} was already setup for CANFAR"
+    if cadc_dotnetrc_check ${user}; then
+        msg "${DOT_NETRC} was already setup for CADC"
         read -p " >> Do you need to change user ${user} or password [y/N]? " answ
         [[ ${answ} != y ]] && return
-	for url in ${CANFAR_URLS[@]}; do
+	for url in ${CADC_URLS[@]}; do
             sed -i -e "/${url}.*${user}/d" ${DOT_NETRC}
 	done
     fi
-    user=$(canfar_dotnetrc_username)
-    psswd=$(canfar_dotnetrc_password)
-    for url in ${CANFAR_URLS[@]}; do
+    user=$(cadc_dotnetrc_username)
+    psswd=$(cadc_dotnetrc_password)
+    for url in ${CADC_URLS[@]}; do
 	echo >> ${DOT_NETRC} "machine ${url} login ${user} password ${psswd}"
     done
     chmod 600 ${DOT_NETRC}
-    echo
-    msg "${DOT_NETRC} is setup for CANFAR"
+    #echo
+    msg "${DOT_NETRC} is setup for CADC for user ${user}"
 }
 
 # Store all options
@@ -119,4 +119,4 @@ while true; do
     shift
 done
 
-canfar_dotnetrc_make ${1:-${USER}}
+cadc_dotnetrc_make ${1:-${USER}}
