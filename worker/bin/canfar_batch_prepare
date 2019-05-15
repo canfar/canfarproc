@@ -77,10 +77,10 @@ canfar_install_condor_ubuntu() {
 	echo "${condordeb}" >> /etc/apt/sources.list
     fi
     wget -qO - https://research.cs.wisc.edu/htcondor/ubuntu/HTCondor-Release.gpg.key | apt-key add - > /dev/null
-    apt-get -q update -y  2> /dev/null || apt update -q -y 2>/dev/null
+    apt-get update -q -y  2> /dev/null || apt update -q -y 2>/dev/null
     msg "installing condor..."
-    # htcondor is the name of the package in debian repo, condor is the name in the condor repo
-    apt-get -q install -y condor || apt install -q -y condor || die "condor didn't install properly"
+    # htcondor is the name of the package in debian repo, condor is the name in the upstream condor repo
+    apt-get install -q -y condor || apt install -q -y condor || die "condor didn't install properly"
 }
 
 # install condor for rpm or deb distros
@@ -108,7 +108,7 @@ canfar_disable_selinux() {
     # selinux not friendly with condor in our configuration
     # it is enabled on RHEL images by default
     if getenforce > /dev/null 2>&1 && [[ $(getenforce) != Disabled ]]; then
-	msg "disabling selinux"
+	msg "disabling SELinux"
 	[[ -e /etc/selinux/config ]] && \
 	    sed -i -e 's/^SELINUX=.*/SELINUX=disabled/g' /etc/selinux/config
 	setenforce 0
@@ -116,7 +116,8 @@ canfar_disable_selinux() {
 }
 
 canfar_setup_network() {
-    # tuned tcp stack for better networking experience with condor and VMs
+    msg "tuning network parameters for batch processing"
+    # tuned tcp stack for better networking experience with condor and VMs    
     mkdir -p  /etc/sysctl.d
     cat > /etc/sysctl.d/20-canfar-batch.conf <<EOF
 kernel.numa_balancing = 0
