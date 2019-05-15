@@ -9,7 +9,10 @@ yum install -y bash-completion
 yum install -y epel-release
 yum update -y
 # deps for vos and cadc stuff
-yum install -y python36-pip fuse-libs idna python-args
+yum install -y python36-pip python36-devel fuse-libs idna python-args
+
+# stuff for pip and users might like to have fortran...
+yum groupinstall -y 'Development Tools'
 
 curl -sL https://github.com/canfar/canfarproc/raw/master/worker/bin/canfar_update -o /usr/local/bin/canfar_update
 chmod +x /usr/local/bin/canfar_update

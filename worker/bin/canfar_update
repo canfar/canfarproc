@@ -46,4 +46,4 @@ grep -q CentOS.*7.  /etc/redhat-release 2> /dev/null && PIP=pip3.6
 # install stuff for ubuntu-18 (bionic) for python3
 grep -q bionic  /etc/os-release 2> /dev/null && PIP=pip3
 
-${PIP} install --upgrade vos vofs cadcutils cadcdata cadctap cadccutout cadcetrans caom2utils caom2repo
+${PIP} install --upgrade vos vofs cadcutils cadcdata cadctap
