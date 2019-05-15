@@ -27,7 +27,7 @@ SCRIPTS="canfar_batch_prepare canfar_create_user cadc_dotnetrc cadc_cert canfar_
 
 for script in ${SCRIPTS} ; do
     msg "updating ${script}"
-    curl -sL ${GITURL}/${cs} -o ${script}
+    curl -sL ${GITURL}/${script} -o ${script}
     install -c ${script} /usr/local/bin
     rm ${script}
 done
