@@ -1,16 +1,16 @@
 #!/bin/bash
 
-# Shell script to mount ephemeral disk
+# basic script to mount ephemeral disk
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.1.0
+EXEC_VERSION=0.1.2
 
 msg() {
     echo -e " >> ${EXEC_NAME}: $1"
 }
 
 die() {
-    echo -e " >> ${EXEC_NAME} ERROR: $1" 1>&2
+    echo -e " !! ERROR ${EXEC_NAME}: $1" 1>&2
     exit 1
 }
 
@@ -27,10 +27,10 @@ canfar_setup_scratch() {
     [[ ${EUID} -ne 0 ]] && die "you must run this script as root or with sudo"
     msg "setting up scratch directory on ${scratchdir}"
     if ! mount | grep -q ${ephemdir}; then
-	msg "ephemeral partition not mounted trying"
+	msg "ephemeral partition not mounted. will try to mount it now."
 	mkdir -p ${ephemdir}
 	mount /dev/vdb ${ephemdir} || \
-	    die "This is not a VM with ephemeral partition. Terminate and choose another flavor"
+	    die "this VM flavour does not have an ephemeral partition"
     fi
     mkdir -p ${scratchdir}
     chmod ugo+rwxt ${scratchdir}
@@ -56,4 +56,5 @@ while true; do
     shift
 done
 
+[[ ${EUID} -ne 0 ]] && die "you must run this script as root or with sudo"
 canfar_setup_scratch
