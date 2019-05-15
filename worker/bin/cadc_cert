@@ -55,7 +55,7 @@ cadc_get_cert() {
     fi
     if grep -q ${CADC_URL}.*${CADC_USER} ${HOME}/.netrc 2> /dev/null; then
 	[[ -n ${VERBOSE} ]] && msg "trying to fetch a cert for ${CADC_USER} using ${HOME}/.netrc"
-	cadc-get-cert --quiet --days-valid=${days} --netrc-file > /dev/null && return 0
+	cadc-get-cert --quiet --days-valid=${days} -n > /dev/null && return 0
     fi
     if [[ -n ${CADC_USER} ]] ; then
 	[[ -n ${VERBOSE} ]] && msg "prompting user for CADC password"

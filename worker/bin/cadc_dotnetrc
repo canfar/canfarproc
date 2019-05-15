@@ -23,7 +23,7 @@ DOT_NETRC="${HOME}/.netrc"
 
 usage() {
     echo $"Usage: ${EXEC_NAME} [OPTIONS] USERNAME
-Check or create a ${DOT_NETRC} file ready for CADC web services
+Check or create a ${DOT_NETRC} file ready for CADC web services for USERNAME (default: ${USER})
 
   -h, --help                display help and exit
   -v, --version             output version information and exit
@@ -120,3 +120,4 @@ while true; do
 done
 
 cadc_dotnetrc_make ${1:-${USER}}
+cadc_cert -u
