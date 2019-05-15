@@ -95,7 +95,7 @@ cadc_dotnetrc_make() {
 	echo >> ${DOT_NETRC} "machine ${url} login ${user} password ${psswd}"
     done
     chmod 600 ${DOT_NETRC}
-    #echo
+    echo
     msg "${DOT_NETRC} is setup for CADC for user ${user}"
 }
 
