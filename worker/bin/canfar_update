@@ -1,20 +1,20 @@
 #!/bin/bash
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.2.0
+EXEC_VERSION=0.2.3
 
 msg() {
     echo -e " >> ${EXEC_NAME}: $1"
 }
 
 die() {
-    echo -e " >> ${EXEC_NAME} ERROR: $1" 1>&2
+    echo -e " !! ERROR ${EXEC_NAME}: $1" 1>&2
     exit 1
 }
 
 usage() {
     echo $"Usage: ${EXEC_NAME}
-Update CANFAR specific scripts and web service clients
+Update CANFAR specific scripts and CADC web service clients
 "
     exit
 }
@@ -23,14 +23,13 @@ GITURL="https://github.com/canfar/canfarproc/raw/master/worker/bin"
 
 [[ ${EUID} -ne 0 ]] && die "you must run this script as root or with sudo"
 
-SCRIPTS="batch_prepare create_user dotnetrc cert update setup_scratch"
+SCRIPTS="canfar_batch_prepare canfar_create_user cadc_dotnetrc cadc_cert canfar_update canfar_setup_scratch"
 
 for script in ${SCRIPTS} ; do
-    cs=canfar_${script}
-    msg "updating ${cs}"
-    curl -sL ${GITURL}/${cs} -o ${cs}
-    install -c ${cs} /usr/local/bin
-    rm ${cs}
+    msg "updating ${script}"
+    curl -sL ${GITURL}/${cs} -o ${script}
+    install -c ${script} /usr/local/bin
+    rm ${script}
 done
 
 msg "updating CADC clients"
@@ -44,4 +43,4 @@ grep -q CentOS.*6.  /etc/redhat-release 2> /dev/null && PIP=pip2.7
 # install stuff for ubuntu-18 (bionic) for python3
 grep -q bionic  /etc/os-release 2> /dev/null && PIP=pip3
 
-${PIP} install --upgrade vos vofs cadcutils cadcdata cadctap
+${PIP} install --upgrade vos vofs cadcutils cadcdata cadctap cadccutout cadcetrans caom2utils caom2repo
