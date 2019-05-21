@@ -4,15 +4,18 @@
 # Assumes a debian or fedora based (i.e. ubuntu and centos)
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.2.1
+EXEC_VERSION=0.2.5
 
 # need to specify local ip to bypass unreliable dns on cc clouds.
 #CM_HOST_NAME="batch.canfar.net"
 #CM_HOST_IP="10.21.0.20"
-CM_HOST_NAME="batch-dev.canfar.net"
-CM_HOST_IP="10.21.0.30"
-VMSTORAGE_HOST_NAME="vmstore.canfar.net"
-VMSTORAGE_HOST_IP="10.21.0.25"
+CM_HOST_NAME="batch.canfar.net"
+
+# we force the IPs to bypass unreliable dns
+CM_HOST_IP="206.12.90.226"
+
+VMSTORAGE_HOST_NAME="vmstore.canfar.net" 
+VMSTORAGE_HOST_IP="206.12.90.217"
 
 # default user to execute jobs
 JOB_USER=auto
@@ -105,8 +108,19 @@ canfar_configure_condor_execdir() {
     fi
     [[ -d ${execdir} ]] || mkdir -p ${execdir}
     chown condor:condor -R ${VM_EPHEMERAL_DIR}
+    chmod 777 ${VM_EPHEMERAL_DIR}
     chmod ugo+rwxt ${execdir}
     echo "EXECUTE = ${execdir}" >> $(canfar_configure_condor_file worker)
+
+    # hack to be backward compatible with older VMs
+    if [[ -d /ephemeral ]]; then
+	msg "linking old /ephemeral directory to /mnt"
+	if ! rmdir /ephemeral; then
+	    msg "old ephemeral directory not empty!! wiping."
+	    rm -rf /ephemeral
+	fi
+	ln -s ${VM_EPHEMERAL_DIR} /ephemeral
+    fi
 }
 
 canfar_configure_condor_env() {
@@ -134,8 +148,8 @@ EOF
     # create home directory because vos needs certs in there
     for i in $(seq ${VM_MAX_SLOTS}); do
 	printf -v slotusr "slot%02d" ${i}
-	    echo "SLOT1_${i}_USER = ${slotusr}" >> ${condorconfig}
-	    useradd --shell /bin/bash --gid condor --create-home ${slotusr}
+	echo "SLOT1_${i}_USER = ${slotusr}" >> ${condorconfig}
+	useradd --shell /bin/bash --gid condor --create-home ${slotusr}
     done
 }
 
@@ -170,7 +184,12 @@ canfar_setup_batch_condor() {
     local cv=$(condor_version 2> /dev/null | awk '/BuildID/ {print $2}')
     if [[ -z ${cv} ]]; then
 	msg "condor is missing, trying to install it"
-	type -P canfar_batch_prepare >/dev/null && canfar_batch_prepare
+	if ! type -P canfar_batch_prepare >/dev/null; then
+	    curl -sL https://github.com/canfar/canfarproc/raw/master/worker/bin/canfar_batch_prepare \
+		 -o /usr/local/bin/canfar_batch_prepare
+	    chmod +x /usr/local/bin/canfar_batch_prepare
+	fi
+	canfar_batch_prepare
     fi
 
     msg "restart condor services to include CANFAR configuration changes"
@@ -181,7 +200,9 @@ canfar_setup_batch_condor() {
     canfar_configure_condor_user
     canfar_configure_condor_cloudscheduler
     # cleaning up condor logs at each new launched VM
-    rm -rf $(condor_config_val LOG)/*
+    local logdir="$(condor_config_val LOG)"
+    [[ -n ${logdir} ]] && rm -rf "${logdir}"/*
+    mkdir -p /var/log/condor
     service condor start
 }
 
@@ -265,7 +286,6 @@ canfar_setup_batch_selinux() {
 	setenforce 0
     fi
 }
-
 
 # Store all options
 OPTS=$(getopt \
