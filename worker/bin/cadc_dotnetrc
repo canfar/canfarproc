@@ -1,7 +1,7 @@
 #!/bin/bash
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.2.2
+EXEC_VERSION=0.2.3
 
 msg() {
     echo -e " >> ${EXEC_NAME}: $1"
@@ -96,6 +96,10 @@ cadc_dotnetrc_make() {
     done
     chmod 600 ${DOT_NETRC}
     echo
+    if type -P cadc_cert; then
+	msg "trying your ${DOT_NETRC} to grab a valid CADC proxy certificate"	
+	cadc_cert -u ${user}
+    fi
     msg "${DOT_NETRC} is setup for CADC for user ${user}"
 }
 
@@ -120,4 +124,3 @@ while true; do
 done
 
 cadc_dotnetrc_make ${1:-${USER}}
-cadc_cert -u
