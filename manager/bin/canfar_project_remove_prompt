@@ -1,0 +1,10 @@
+#!/bin/bash
+
+echo "Please enter your arbutus OpenStack Password for the project(s)"
+read -sr OS_PASSWORD_INPUT
+for rcfile in $*; do
+    sed -e 's/^echo/#echo/g' \
+	-e 's/^read/#read/g' \
+	-e "s/OS_PASSWORD=.*/OS_PASSWORD=${OS_PASSWORD_INPUT}/g" \
+	-i ${rcfile}
+done
