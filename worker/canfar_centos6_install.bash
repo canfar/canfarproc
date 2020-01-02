@@ -14,7 +14,7 @@ yum install -y bash-completion
 curl -Ls https://setup.ius.io | sudo bash
 
 # deps for vos and cadc stuff
-yum install python27-pip fuse fuse-libs
+yum install -y python27-pip fuse fuse-libs
 
 curl -sL https://github.com/canfar/canfarproc/raw/master/worker/bin/canfar_update -o /usr/local/bin/canfar_update
 chmod +x /usr/local/bin/canfar_update
@@ -29,3 +29,4 @@ export PATH="/usr/local/bin:${PATH}"
 canfar_update
 
 yum clean all -y
+
