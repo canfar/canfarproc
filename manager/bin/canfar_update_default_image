@@ -1,0 +1,71 @@
+#!/bin/bash
+
+EXEC_NAME=$(basename $0 .${0##*.})
+EXEC_VERSION=0.1.0
+
+msg() {
+    echo -e " >> ${EXEC_NAME}: $1"
+}
+
+warn() {
+    echo -e " ## WARNING ${EXEC_NAME}: $1"
+}
+
+die() {
+    echo -e " !! ERROR ${EXEC_NAME}: $1" 1>&2
+    exit 1
+}
+
+usage() {
+    echo $"Usage: ${EXEC_NAME}
+  -h, --help                display help and exit
+  -v, --version             output version information and exit
+"
+    exit
+}
+
+update_image() {
+    local image=$1
+    openstack server create \
+	      --name ${image} \
+	      --key-name canfarops_rsa \
+	      --network VLAN2044 \
+	      --flavor c1-7.5gb-30 \
+	      --user-data ${image_updater} \
+	      ${image}
+}
+
+share_image() {
+    local image=$1
+    new_image=${image}-$(date -I)
+    old_image=${image}-old
+    canfar_share_vm --all ${new_image} cadc
+    openstack image set --name ${old_image} ${image}
+    openstack image set --name ${image} ${new_image}
+    openstack image delete ${old_image}
+}
+
+OPTS=$(getopt \
+    -o hV \
+    -l help \
+    -l version \
+    -- "$@")
+
+eval set -- "${OPTS}"
+
+# Process options
+while true; do
+    case "$1" in
+	-h | --help) usage ;;
+	-V | --version) echo ${EXEC_VERSION}; exit ;;
+	--)  shift; break ;; # no more options
+	*) break ;; # parameters
+    esac
+    shift
+done
+
+CANFAR_IMAGES="canfar-centos-7 canfar-centos-9 canfar-ubuntu-18.04"
+
+for image in ${CANFAR_IMAGES}; do
+    share_image ${image}
+done

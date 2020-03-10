@@ -1,0 +1,95 @@
+#!/bin/bash
+
+EXEC_NAME=$(basename $0 .${0##*.})
+EXEC_VERSION=0.1.0
+
+msg() {
+    echo -e " >> ${EXEC_NAME}: $1"
+}
+
+warn() {
+    echo -e " ## WARNING ${EXEC_NAME}: $1"
+}
+
+die() {
+    echo -e " !! ERROR ${EXEC_NAME}: $1" 1>&2
+    exit 1
+}
+
+usage() {
+    echo $"Usage: ${EXEC_NAME} [image_name] [PROJECT]...[PROJECT]
+Share OpenStack image from one project to others
+  -a, --all                 share image with all CANFAR projects
+  -h, --help                display help and exit
+  -v, --version             output version information and exit
+"
+    exit
+}
+
+unsource_os() {
+    unset $(env | grep OS_ | sed -e 's/\(.*\)=.*/\1/g') 
+}
+
+share_image_with_project() {
+    local os_image_id=$1 os_proj_name=$2
+    local os_proj_id=$(awk -F= '/OS_PROJECT_ID/ {print $2}' ${OS_PROJ_DIR}/${os_proj_name}-openrc.sh)
+
+    msg "${OS_PROJ_SRC} sharing image ${os_image_id} with ${os_proj_name}"
+    unsource_os
+    source ${OS_PROJ_DIR}/${OS_PROJ_SRC}-openrc.sh
+    openstack image add project ${os_image_id} ${os_proj_id}
+
+    msg "${os_proj_name} accepting image ${os_image_id} from ${OS_PROJ_SRC}"
+    unsource_os
+    source ${OS_PROJ_DIR}/${os_proj_name}-openrc.sh
+    openstack image set --accept ${os_image_id}
+}    
+
+# Store all options
+OPTS=$(getopt \
+    -o ahV \
+    -l all \
+    -l help \
+    -l version \
+    -- "$@")
+
+eval set -- "${OPTS}"
+
+ALL_PROJECTS=false
+
+# Process options
+while true; do
+    case "$1" in
+	-a | --all) ALL_PROJECTS=true ;;
+	-h | --help) usage ;;
+	-V | --version) echo ${EXEC_VERSION}; exit ;;
+	--)  shift; break ;; # no more options
+	*) break ;; # parameters
+    esac
+    shift
+done
+
+[[ $# -lt 2 ]] && usage
+
+OS_IMAGE=$1
+OS_PROJ_SRC=$2
+shift 2
+
+# directory where all openrc projects are stored
+OS_PROJ_DIR="/mnt/stats/openstack/projects/arbutus"
+
+if [[ ${ALL_PROJECTS} == true ]]; then
+    os_projects="$(ls -1 ${OS_PROJ_DIR} | grep openrc.sh | sed -e 's|\(.*\)-openrc.sh|\1|g')"
+else
+    os_projects="$*"
+fi
+
+[[ -z ${os_projects} ]] && usage
+
+source ${OS_PROJ_DIR}/${OS_PROJ_SRC}-openrc.sh
+os_image_id=$(openstack image show -f value -c id ${OS_IMAGE})
+openstack image set --shared ${os_image_id}
+
+for os_proj in ${os_projects}; do
+    share_image_with_project ${os_image_id} ${os_proj}
+done
