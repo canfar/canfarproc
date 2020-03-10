@@ -1,0 +1,8 @@
+/var/log/cloudscheduler.log {
+        missingok
+        compress
+        dateext
+        copytruncate
+        daily
+        rotate 999
+}
