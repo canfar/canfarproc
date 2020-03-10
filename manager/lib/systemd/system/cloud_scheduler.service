@@ -1,0 +1,21 @@
+[Unit]
+Description= Boots Virtual Machines on the Cloud in response to condor jobs.
+After=network.target condor.service
+
+[Service]
+EnvironmentFile=-/etc/default/cloud_scheduler.conf
+ExecStart=/usr/local/bin/cloud_scheduler
+ExecReload=/bin/kill -SIGUSR2 $MAINPID
+#KillMode=mixed
+Restart=on-failure
+#RestartSec=20seconds
+#WatchdogSec=20minutes
+#TimeoutStopSec=150seconds
+#StandardOutput=syslog
+#NotifyAccess=main
+#KillSignal=SIGQUIT
+LimitNOFILE=32767
+#TasksMax=32767
+
+[Install]
+WantedBy=multi-user.target
