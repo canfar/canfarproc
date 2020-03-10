@@ -1,0 +1,33 @@
+#!/bin/bash
+
+STATS_DIR=/mnt/stats/htcondor
+
+filter_condor_history() {
+    condor_history -af:hV, \
+	Owner \
+	ClusterId \
+	ProcId \
+	NumJobStarts \
+	QDate \
+	JobStartDate \
+	CompletionDate \
+	CumulativeSlotTime \
+	MemoryUsage \
+	DiskUsage \
+	CumulativeSuspensionTime \
+	VMInstanceType \
+	MachineAttrSlotWeight0 \
+	RequestCpus \
+	RequestDisk \
+	RequestMemory \
+	-file $1
+}
+
+mkdir -p ${STATS_DIR}/csv
+for f in ${STATS_DIR}/history/history.????????T?????? ; do
+    # very basic check
+    basef=$(basename ${f})
+    [[ -e ${STATS_DIR}/csv/${basef}.csv ]] && echo "${f} done" && continue
+    echo "$(basename $0): converting ${f} to csv"
+    filter_condor_history ${f} > ${STATS_DIR}/csv/${basef}.csv
+done

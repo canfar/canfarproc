@@ -1,0 +1,63 @@
+#!/bin/bash
+
+EXEC_NAME=$(basename $0 .${0##*.})
+EXEC_VERSION=0.2.1
+
+msg() {
+    echo -e " >> ${EXEC_NAME}: $1"
+}
+
+warn() {
+    echo -e " ## WARNING ${EXEC_NAME}: $1"
+}
+
+die() {
+    echo -e " !! ERROR ${EXEC_NAME}: $1" 1>&2
+    exit 1
+}
+
+usage() {
+    echo $"Usage: ${EXEC_NAME} [openstack RC file]"
+    exit
+}
+
+
+STARTDAY="2015-01-01"
+TODAY="$(date +%Y-%m-%d)"
+
+OS_STATS_DIR=/mnt/stats/openstack
+
+openstack_compute_usage() {
+    local rcfile=$1
+    source ${rcfile}
+    if [[ -z ${OS_PROJECT_NAME} ]] || [[ -z ${OS_PASSWORD} ]]; then
+	warn "bad openrc file: ${rcfile}, skipping"
+	return 1
+    fi
+    msg "computing stats for project ${OS_PROJECT_NAME}"
+    local cloud=$(echo ${OS_AUTH_URL} | sed -e 's|https://\(.*\).cloud.computecanada.ca.*|\1|')
+    local usagefile=${OS_STATS_DIR}/csv/${cloud}/openstack_usage_${OS_PROJECT_NAME}.csv
+    local daystart=${STARTDAY}
+    local dayend=${STARTDAY}
+    while [[ ${dayend} != ${TODAY} ]]; do
+	daystart=${dayend}
+	dayend=$(date +%Y-%m-%d -d "${daystart} + 1 day")
+	grep -q ${dayend} ${usagefile} 2> /dev/null && continue
+	msg "   ${OS_PROJECT_NAME} ${daystart} -> ${dayend}"
+	line=$(
+	    openstack usage show \
+		--format value \
+		--start ${daystart} \
+		--end ${dayend} 2> /dev/null
+	)
+	line=${line//None/0}
+	[[ -z ${line} ]] && line="0 0 0 0"
+	printf "%s,%s,%s,%s,%s\n" ${daystart} ${line} >> ${usagefile}
+    done
+    # remove failed stat queries and reorder
+    echo "day,cpuhours,diskgbhours,rammbhours,nserver" > ${usagefile}.new
+    sort -k1 ${usagefile} | grep -v day | grep -v ',,,' | uniq | sed -e 's|None|0|g' >> ${usagefile}.new
+    mv ${usagefile}.new ${usagefile}
+}
+
+openstack_compute_usage $1

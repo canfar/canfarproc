@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+#
+# A tool to compute openstack project statistics
+#
+# Inputs format in the YYYY-MM-DD, example:
+#  canfar_openstack_stats 2010-10-01 2010-12-31
+
+import os
+from pathlib import Path
+#import glob
+import argparse
+import pandas as pd
+
+# returns a dataframe with project name, cpu (core year), disk (TB year),ram (GB year), number of launched servers
+def project_stats(filename, start_date, end_date):
+    df = pd.read_csv(filename)
+    df['day'] = pd.to_datetime(df['day'])
+    mask = (df['day'] >= start_date) & (df['day'] <= end_date)
+    df = df.loc[mask]
+    htoy = 24*365.
+    name = os.path.basename(filename).replace('openstack_usage_','').replace('.csv', '').replace('canfar-','')
+    return {'name': str(name), 
+            'cpu': df['cpuhours'].sum()/htoy, 
+            'disk': df['diskgbhours'].sum()/1000/htoy,
+            'ram': df['rammbhours'].sum() /1000/ htoy,
+            'nvm': df['nserver'].sum()}
+
+parser = argparse.ArgumentParser()
+parser.add_argument('start_date', help='Start date of processing YYYY-MM-DD')
+parser.add_argument('end_date', help='End date of processing YYYY-MM-DD')
+args = parser.parse_args()
+
+stats_dir = '/mnt/stats/openstack/csv'
+
+projects = []
+
+#for csv_file in glob.iglob(stats_dir + '*/*.csv'):
+for csv_file in Path(stats_dir).rglob('*/*.csv'):
+    #print(csv_file)
+    projects.append(project_stats(csv_file, args.start_date, args.end_date))
+    
+df = pd.DataFrame(projects, columns = ['name','cpu', 'ram', 'disk','nvm'])
+
+print('Total core-years within that period', df.cpu.sum())

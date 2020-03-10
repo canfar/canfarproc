@@ -1,0 +1,8 @@
+#!/bin/bash
+
+PATH=/usr/local/bin:/usr/bin:/bin:/sbin:/usr/sbin
+
+proj_dir=/mnt/stats/openstack/projects
+log_file=/tmp/canfar_openstack_stats.log
+
+find ${proj_dir} -name \*-openrc.sh  | xargs -n1 canfar_project_stats &> ${log_file}
