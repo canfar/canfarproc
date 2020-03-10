@@ -1,7 +1,7 @@
 #!/bin/bash
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.3.1
+EXEC_VERSION=0.3.4
 
 msg() {
     echo -e " >> ${EXEC_NAME}: $1"
@@ -28,8 +28,6 @@ cloud=$1
 source /mnt/stats/openstack/projects/${cloud/cc-}/CANFAR-openrc.sh
 
 export PATH="/usr/local/bin:${PATH}"
-
-log_file="/var/log/cloudcleanup.log"
 
 # loop on VM instance names found on nova
 for vm_nova_name in $(openstack server list -f value -c Name 2> /dev/null | grep ${cloud}); do
@@ -59,13 +57,13 @@ for vm_nova_name in $(openstack server list -f value -c Name 2> /dev/null | grep
     fi
 done
 
-# terminate all instances found on nova but not on cloud scheduler
+msg "terminate all instances found on nova but not on cloud scheduler"
 if [ -n "${vm_to_delete}" ]; then
-    msg "deleting the $(echo ${vm_to_delete} | wc -w) instances lost from cloud scheduler"
+    msg "deleting $(echo ${vm_to_delete} | wc -w) lost VM instances from cloud scheduler"
     openstack server delete ${vm_to_delete}
 fi
 
-# work around cloud scheduler threaded clean-up dead-lock
+msg "work around cloud scheduler threaded clean-up dead-lock"
 bad_vms="$(cloud_status -m | grep Retiring | awk '{print $1}')"
 if [[ -n "${bad_vms}" ]]; then
     for vm_cs_id in ${bad_vms}; do
@@ -74,17 +72,12 @@ if [[ -n "${bad_vms}" ]]; then
     done
 fi
 
-# work around condor getting lost but VM still up
-#vm_workers="$(condor_q -run -nobatch | awk '{print $6}' | grep ${VM_PREFIX} | sed -e 's/^slot1@//')"
-#cmd=""
-#for vm_worker in ${vm_workers}; do
-#    cmd="${cmd} | grep -v ${vm_worker}"
-#done
-#bad_vms="$(cloud_status -m ${cmd} | grep -v Total | grep -v ID | awk '{print $1}')"
-#for vm_cs in ${bad_vms}; do
-#    echo "Terminating VM ${vm_cs} in HTCondor stalled state"
-#    cloud_admin -k -n ${vm_cs} -c ${CLOUD_NAME}
-#done
+msg "clean up unclaimed VM from condor in cloud"
+cloud_status -c ${cloud} -m | \
+    grep Running | \
+    awk -v cloud=${cloud} \
+	'{printf "if [[ $(condor_status -const \47regexp(\"%s\",Machine)\47 -af State) == Unclaimed ]]; then echo \"Terminating unclaimed VM %s in cloud %s\"; cloud_admin -c %s -k -n %s;fi \n", $2, $2, cloud, cloud, $1}' | \
+    bash
 
 for vm_nova_name in $(openstack server list --status ERROR -f value -c Name 2> /dev/null); do
     msg "deleting VM instance ${vm_nova_name} in ERROR state"
@@ -96,5 +89,6 @@ for vm_nova_name in $(openstack server list --status ERROR -f value -c Name 2> /
     fi
 done
 
-sudo cloud_admin -e ${cloud}
-condor_release -a
+#msg "renabling cloud ${cloud} and releasing any hold jobs"
+#cloud_admin -e ${cloud}
+#condor_release -a
