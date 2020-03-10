@@ -4,14 +4,10 @@
 # Assumes a debian or fedora based (i.e. ubuntu and centos)
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.2.5
+EXEC_VERSION=0.3.1
 
-# need to specify local ip to bypass unreliable dns on cc clouds.
-#CM_HOST_NAME="batch.canfar.net"
-#CM_HOST_IP="10.21.0.20"
+# need to specify local IP to bypass unreliable DNS
 CM_HOST_NAME="batch.canfar.net"
-
-# we force the IPs to bypass unreliable dns
 CM_HOST_IP="206.12.90.226"
 
 VMSTORAGE_HOST_NAME="vmstore.canfar.net" 
@@ -233,8 +229,8 @@ canfar_setup_batch_network() {
 	echo "${CM_HOST_IP} ${CM_HOST_NAME%%.*} ${CM_HOST_NAME} ${addstr}" >> ${etc_hosts}
     fi
 
-    # Read-only glusterfs local master
-    addstr="# Added for glusterfs to connect locally"
+    # Read-only nfs local master
+    addstr="# Added for nfs to connect locally"
     sed -i -e "/${VMSTORAGE_HOST_NAME%%.*}/d" ${etc_hosts}
     echo "${VMSTORAGE_HOST_IP} ${VMSTORAGE_HOST_NAME%%.*} ${VMSTORAGE_HOST_NAME} ${addstr}" >> ${etc_hosts}
 
@@ -247,7 +243,10 @@ canfar_setup_batch_network() {
 	msg "disabling IPV6 firewall for CANFAR"
 	service ip6tables stop
     fi
+}
 
+# hopefully not needed anymore with condor>8.4
+canfar_setup_tune_tcp_network() {
     # tuned tcp stack for VMs
     mkdir -p  /etc/sysctl.d
     cat > /etc/sysctl.d/20-canfar-batch.conf <<EOF
@@ -259,9 +258,9 @@ net.core.wmem_max = 16777216
 net.ipv4.neigh.default.gc_thresh1 = 2048
 net.ipv4.neigh.default.gc_thresh2 = 3072
 net.ipv4.neigh.default.gc_thresh3 = 4096
-net.ipv4.tcp_keepalive_time=200
-net.ipv4.tcp_keepalive_intvl=200
-net.ipv4.tcp_keepalive_probes=5
+net.ipv4.tcp_keepalive_time = 200
+net.ipv4.tcp_keepalive_intvl = 200
+net.ipv4.tcp_keepalive_probes = 5
 net.ipv4.tcp_wmem = 4096 12582912 16777216
 net.ipv4.tcp_rmem = 4096 12582912 16777216
 net.ipv4.tcp_max_syn_backlog = 8096
@@ -289,8 +288,9 @@ canfar_setup_batch_selinux() {
 
 # Store all options
 OPTS=$(getopt \
-    -o i:u:hv \
+    -o i:u:c:hv \
     -l image-name: \
+    -l central-manager-ip: \
     -l user: \
     -l help \
     -l version \
@@ -302,7 +302,8 @@ eval set -- "${OPTS}"
 while true; do
     case "$1" in
 	-i | --image-name) VM_IMAGE=${2##=}; shift ;;
-	-u | --user) JOB_USER=${2##=}; shift ;;
+	-c | --central-manager-ip) CM_HOST_IP=${2##=}; shift ;;
+	-u | --user) JOB_USER=${2##=}; shift ;;	
 	-h | --help) usage ;;
 	-V | --version) echo ${EXEC_VERSION}; exit ;;
 	--)  shift; break ;; # no more options
