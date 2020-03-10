@@ -1,0 +1,5 @@
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Cleanup wrangling VMs every 3 hours everyday
+0  */3 * * * canfarops canfar_cloud_cleanup cc-arbutus &> /tmp/canfar_cloud_cleanup_arbutus.log
