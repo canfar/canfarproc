@@ -1,0 +1,2 @@
+deb http://research.cs.wisc.edu/htcondor/ubuntu/8.8/bionic bionic contrib
+deb-src http://research.cs.wisc.edu/htcondor/ubuntu/8.8/bionic bionic contrib

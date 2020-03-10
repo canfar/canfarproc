@@ -1,0 +1,33 @@
+# avoid this because floating IP still causing issues
+# such as jobs getting killed after ~1h with condor shadow lost connection
+#NETWORK_INTERFACE = 206.12.90.226
+#CONDOR_HOST = $(NETWORK_INTERFACE)
+
+CONDOR_HOST = batch.canfar.net
+
+DAEMON_LIST = COLLECTOR, MASTER, NEGOTIATOR, SHARED_PORT, SCHEDD
+USE_SHARED_PORT = TRUE
+
+SHARED_PORT_ARGS = -p 9618
+
+START = TRUE
+SUSPEND = FALSE
+PREEMPT = FALSE
+KILL = FALSE
+
+## Disable UID_DOMAIN check when submit a job
+#TRUST_UID_DOMAIN = TRUE
+
+## Gotta be the same as the exec host unless executing as nobody
+UID_DOMAIN = canfar.net
+
+#ALL_DEBUG  = D_HOSTNAME
+
+#FLOCK_TO = batch-collector2.canfar.net
+#FLOCK_NEGOTIATOR_HOSTS = $(FLOCK_TO)
+#HOSTALLOW_NEGOTIATOR_SCHEDD = $(COLLECTOR_HOST), $(FLOCK_NEGOTIATOR_HOSTS)
+
+ENABLE_SOAP = FALSE
+
+QUEUE_SUPER_USERS = root, condor, canfarops
+SSH_TO_JOB_SSHD_CONFIG_TEMPLATE = /etc/condor/condor_ssh_to_job_sshd_config_template

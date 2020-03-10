@@ -1,0 +1,36 @@
+#use SECURITY: Strong
+#SEC_DEFAULT_AUTHENTICATION_METHODS = FS, PASSWORD
+#SEC_READ_AUTHENTICATION_METHODS = $(SEC_DEFAULT_AUTHENTICATION_METHODS),ANONYMOUS
+#SEC_CLIENT_AUTHENTICATION_METHODS = $(SEC_DEFAULT_AUTHENTICATION_METHODS),ANONYMOU
+
+#SEC_DEFAULT_AUTHENTICATION = REQUIRED
+#SEC_DEFAULT_AUTHENTICATION_METHODS = GSI
+#SEC_DEFAULT_ENCRYPTION = REQUIRED
+#SEC_DEFAULT_ENCRYPTION_METHODS = 3DES
+#SEC_DEFAULT_INTEGRITY = REQUIRED
+#GRIDMAP = /etc/grid-security/grid-mapfile
+#GSI_DAEMON_CERT = /etc/grid-security/condor/condorcert.pem
+#GSI_DAEMON_KEY = /etc/grid-security/condor/condorkey.pem
+#GSI_DAEMON_TRUSTED_CA_DIR = /etc/grid-security/certificates/
+#GSI_DAEMON_NAME = /C=CA/O=Grid/CN=condor/condor.heprc.uvic.ca,/C=CA/O=Grid/CN=condorworker/condor.heprc.uvic.ca
+#GSI_DELEGATION_KEYBITS = 1024
+
+# clear out any host-based authorizations
+# (unnecessary if you leave authentication REQUIRED,
+#  but useful if you make it optional and want to
+#  allow some unauthenticated operations, such as
+#  ALLOW_READ = */*.cs.wisc.edu)
+#HOSTALLOW_READ = *
+#HOSTALLOW_WRITE = *
+#HOSTALLOW_NEGOTIATOR =
+#HOSTALLOW_ADMINISTRATOR =
+
+#ALLOW_READ = *
+#ALLOW_WRITE = *
+#ALLOW_DAEMON = *
+
+ALLOW_READ = localhost, $(FULL_HOSTNAME), $(CONDOR_HOST), $(IP_ADDRESS), 10.21.*, 192.168,*, 206.12.90.*
+ALLOW_WRITE = localhost, $(FULL_HOSTNAME), $(CONDOR_HOST), $(IP_ADDRESS), 10.21.*, 192.168.*, 206.12.90.*
+ALLOW_DAEMON = localhost, $(FULL_HOSTNAME), $(CONDOR_HOST), $(IP_ADDRESS), 10.21.*, 192.168.*, 206.12.90.*
+ALLOW_NEGOTIATOR = localhost, $(FULL_HOSTNAME), $(CONDOR_HOST), $(IP_ADDRESS), 10.21.*, 192.168.*, 206.12.90.*
+ALLOW_NEGOTIATOR_SCHEDD = localhost, $(FULL_HOSTNAME), $(CONDOR_HOST), $(IP_ADDRESS), 10.21.*, 192.168.*, 206.12.90.*

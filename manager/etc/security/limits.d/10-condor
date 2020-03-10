@@ -1,0 +1,12 @@
+# limits for HTCondor 
+# see: http://research.cs.wisc.edu/htcondor/HTCondorWeek2013/presentations/HoverJ_cloud_clusters.pdf
+#Each line describes a limit for a user in the form (see /etc/security/limits.conf for desc)
+#
+
+#<domain> <type>  <item>  <value>
+
+*         -       nofile  1000000
+*         -       noproc  unlimited
+*         -       memlock unlimited
+*         -       locks   unlimited
+*         -       core    unlimited
