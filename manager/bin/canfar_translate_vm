@@ -53,6 +53,7 @@ try:
     image = args.image
     flavor = args.flavor
 
+    # Get cloud credentials from system environment variables
     auth = ksv3.Password(auth_url=os.environ['OS_AUTH_URL'],
                          username=os.environ['OS_USERNAME'],
                          password=os.environ['OS_PASSWORD'],
@@ -77,6 +78,7 @@ try:
     if not image_id:
         matches = []
         
+        # List images and search for ID
         for i in g.images.list():
             if image_name == i['name']:
                 matches.append(i['id'])
@@ -93,6 +95,7 @@ try:
     # Share the image with batch project
 
     try:
+        #CANFAR project ID is allowed to access user image (g is glance) 
         im = g.images.get(image_id)
         if im['visibility'] != 'public':
             if args.verbose:
@@ -113,6 +116,7 @@ try:
 
     # We will require a flavor ID. If the user supplied a name, convert
     # it to ID.
+    # This might not be needed with csv2 because we will just have cpu and ram reqs...
     try:
         # user provided flavor_id
         flavor_id = str(uuid.UUID(flavor))
