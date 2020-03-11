@@ -3,38 +3,42 @@
 # Canfar user flow:
 
 
-* user creates CADC account:
-    -They need a VO Space account
+1. user creates CADC account:
+    -They need a VOSpace account
 
-* user needs to be added to OpenStack cloud: 
+2. user needs to be added to OpenStack cloud: 
     - go to group managment system, canfar.net - login with cadc
     - add user to group arbutus-cloud-users as member
     - add user (cadc username) to cadc project
 
 
-* ssh to batch.canfar.net as admin-> hosts cs and condor
+3. ssh to batch.canfar.net as admin-> hosts cs and condor
     - sudo canfar_create_batch_user cadcusername projectname -> this must be on group cadc... important!
       eg: sudo canfar_create_batch_user casteels cadc
     - for new user, add key to .ssh/authorized_keys in users home directory 
 
-* The user can then submit their jobs to the condor job pool with the "canfar_submit" command:
+4. The user can then submit their jobs to the condor job pool with the "canfar_submit" command:
       eg: canfar_submit quick_start.sub quick_start-0.1 c2-7.5gb-31
 
 * A proxy cert is issued from OpenStack GUI (generated from grid canada cert with expiry). getCert command pulls in (cadc_cert command in canfar_submit) (cadc_cert can be replaced by getcert)
 
-* condor will upload cert to workers... gives access to vospace
+* condor will upload cert to workers and gives access to VOSpace
 
 
 
 # Steps to create new users:
 
+1. goto os arbutus gui using canfarops account, download name-openrc.sh file
 
-  l. goto os arbutus gui using canfarops account, download name-openrc.sh file
-  l. copy openrc file to batch under canfarops
-  l. copy openrc into projects-openrc in canfarops dir
-  l. sudo canfar_create_user username projectname
-  l. canfar_project_remove_prompt name-openrc.sh (be sure to use canfarops password, for stats)
-  l. mv name-openrc.sh /mnt/stats/openstack/projects/arbutus
+2. copy openrc file to batch under canfarops
+
+3. copy openrc into projects-openrc in canfarops dir
+
+4. sudo canfar_create_user username projectname
+
+5. canfar_project_remove_prompt name-openrc.sh (be sure to use canfarops password, for stats)
+
+6. mv name-openrc.sh /mnt/stats/openstack/projects/arbutus
 
 
 
