@@ -97,7 +97,6 @@
 
   - If one of the argument requirements fails, the script will exit.
 
-
   - Validate user's job file (in jdl format typically with a \*.sub extsion, although this doesn't matter in practice).
 
   - First the executable is extracted
@@ -197,6 +196,12 @@
    - write and execute the cloud scheduler configuration script
    - image_name and image_user are used by canfar_batch_init to set the VMType. If not specified defaults to $HOSTNAME and $USER the full output path name of the configuration script when copied into the VM
 
+    - The following fields are added to the jdl file:
+          VMTYPE
+          VMAMI
+          VMInstanceType
+          VMAMIConfig
+          VMKeepAlive
 
 
 # Other script descriptions:
