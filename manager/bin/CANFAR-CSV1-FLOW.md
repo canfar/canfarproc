@@ -1,6 +1,6 @@
 
 
-#Canfar user flow:
+# Canfar user flow:
 
 
 * user creates CADC account:
@@ -26,7 +26,7 @@
 
 
 
-#Steps to create new users:
+# Steps to create new users:
 
 
   * goto os arbutus gui using canfarops account, download name-openrc.sh file
@@ -38,7 +38,7 @@
 
 
 
-#Flow diagram:
+# Flow diagram:
 
 ```
 -> canfar_submit 
@@ -64,28 +64,28 @@
   cloudscheduler V1 (watches condor and starts VMs as needed)
 ```
 
-##canfar_submit:
+## canfar_submit:
 
-###DESCRIPTION:
+### DESCRIPTION:
 
  User script for submitting jobs. A wrapper for canfar_translate_vm, canfar_job_validate and condor_submit. Normally a user should use canfar_translate_vm so that the job goes through the web service. This script avoids the web service and can submit jobs directly on the head node for testing purposes.
 
-###INPUTS:
+### INPUTS:
       JOB_FILE     - HTCondor job submission file
       VM_IMAGE     - OpenStack VM image used to process jobs (name or ID)
       VM_FLAVOR    - OpenStack VM resource flavor used to process jobs
 
-###OPTIONS:
+### OPTIONS:
       -c, --cert=<path>         specify path for proxy to access VOSpace (default: ${HOME}/.ssl/cadcproxy.pem)
       -u, --user=<username>     specify user to run the jobs on the VM (default: automatically detected)
       -h, --help                display help and exit
       -V, --version             output version information and exit
       -v, --verbose             verbose mode for debugging
 
-###USAGE:
+### USAGE:
       canfar_submit [OPTION] JOB_FILE VM_IMAGE VM_FLAVOR
 
-###FLOW:
+### FLOW:
 
   - Store all input options options
 
@@ -113,9 +113,9 @@
 
 
 
-##canfar_translate_vm:
+## canfar_translate_vm:
 
-###DESCRIPTION:
+### DESCRIPTION:
 
   This is a tool to share images/snapshots between canfar OpenStack projects.
 
@@ -129,11 +129,11 @@
       VM_FLAVOR
 
 
-###USAGE:
+### USAGE:
       canfar_translate_vm [options] VM_IMAGE VM_FLAVOR
 
 
-###FLOW:
+### FLOW:
 
   - Get cloud credentials from system environment variables
 
@@ -153,9 +153,9 @@
 
 
 
-##canfar_job_validate:
+## canfar_job_validate:
 
-###DESCRIPTION:
+### DESCRIPTION:
 
   A user provides a bare condor job description file, as well as image and flavor IDs.
 
@@ -163,7 +163,7 @@
 
   Bad exit status is set upon failure.
 
-###INPUTS:
+### INPUTS:
       CM_IP
       CERT_USER
       JOB_USER
@@ -171,11 +171,11 @@
       JOB_SCRIPT
       VM_IMAGE_AND_FLAVOR_IDS
 
-###USAGE:
+### USAGE:
       canfar_job_validate CM_IP CERT_USER JOB_USER JOB_FILE JOB_SCRIPT VM_IMAGE_AND_FLAVOR_IDS
 
 
-###FLOW:
+### FLOW:
 
 - Parse command line
 
@@ -195,7 +195,7 @@
 
 
 
-#Other script descriptions:
+# Other script descriptions:
 
 
 - **cadc_cert** -> wrapper for getCert          
