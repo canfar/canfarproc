@@ -29,12 +29,12 @@
 # Steps to create new users:
 
 
-  * goto os arbutus gui using canfarops account, download name-openrc.sh file
-  * copy openrc file to batch under canfarops
-  * copy openrc into projects-openrc in canfarops dir
-  * sudo canfar_create_user username projectname
-  * canfar_project_remove_prompt name-openrc.sh (be sure to use canfarops password, for stats)
-  * mv name-openrc.sh /mnt/stats/openstack/projects/arbutus
+  l. goto os arbutus gui using canfarops account, download name-openrc.sh file
+  l. copy openrc file to batch under canfarops
+  l. copy openrc into projects-openrc in canfarops dir
+  l. sudo canfar_create_user username projectname
+  l. canfar_project_remove_prompt name-openrc.sh (be sure to use canfarops password, for stats)
+  l. mv name-openrc.sh /mnt/stats/openstack/projects/arbutus
 
 
 
@@ -124,7 +124,7 @@
   - translate image, project to UUID as needed
   - will output VM and flavour IDs.
 
-###INPUTS:
+### INPUTS:
       VM_IMAGE
       VM_FLAVOR
 
@@ -177,17 +177,17 @@
 
 ### FLOW:
 
-- Parse command line
+* Parse command line
 
-- Check for valid UUIDs
+* Check for valid UUIDs
 
-- Check parameters in jobfile
+* Check parameters in jobfile
 
-- Re-write 'Executable' line since the proc web service will have placed it somewhere different from the user's original location
+* Re-write 'Executable' line since the proc web service will have placed it somewhere different from the user's original location
 
-- Determine the name of the image from its UUID, and the name of the project that owns it. First we get a glance client to get the name of the given image ID. We then query that image's metadata to obtain its owner project id. Finally, we use a second keystone client scoped to the image's owner project to obtain its project name.
+* Determine the name of the image from its UUID, and the name of the project that owns it. First we get a glance client to get the name of the given image ID. We then query that image's metadata to obtain its owner project id. Finally, we use a second keystone client scoped to the image's owner project to obtain its project name.
 
-- Generate cloud config file for this user as follows:
+* Generate cloud config file for this user as follows:
 
    - inject a public ssh key into the generic user account
    - write and execute the cloud scheduler configuration script
