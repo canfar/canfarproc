@@ -1,3 +1,6 @@
+# CANFAR Batch Workflow using CloudScheduler V1
+
+This document describes the workflow for running CANFAR batch processing jobs using CloudScheduler version 1. This is largely meant to be a historical document in preparation for migrating the batch system to using CloudScheduler version 2.  
 
 
 # Canfar user flow:
