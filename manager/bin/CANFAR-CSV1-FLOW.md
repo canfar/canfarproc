@@ -3,22 +3,22 @@
 This document describes the workflow for running CANFAR batch processing jobs using CloudScheduler version 1. This is largely meant to be a historical document in preparation for migrating the batch system to using CloudScheduler version 2.  
 
 
-# Canfar user flow:
+# Canfar new user flow:
 
 
-1. user creates CADC account:
-    -They need a VOSpace account
+1. The user creates CADC account:
+	- They need a VOSpace account first
 
-2. user needs to be added to OpenStack cloud: 
-    - go to group managment system, canfar.net - login with cadc
+2. The user needs to be added to the Arbutus OpenStack cloud: 
+    - go to group management system, canfar.net - login with cadc
     - add user to group arbutus-cloud-users as member
     - add user (cadc username) to cadc project
 
 
-3. ssh to batch.canfar.net as admin-> hosts cs and condor
-    - sudo canfar_create_batch_user cadcusername projectname -> this must be on group cadc... important!
+3. ssh to batch.canfar.net as admin (hosts CloudScheduler V1 and condor)
+    - sudo canfar_create_batch_user cadcusername projectname  (this must be on group cadc... very important!)
       eg: sudo canfar_create_batch_user casteels cadc
-    - for new user, add key to .ssh/authorized_keys in users home directory 
+    - for new a user, add key to .ssh/authorized_keys in user's home directory 
 
 4. The user can then submit their jobs to the condor job pool with the "canfar_submit" command:
       eg: canfar_submit quick_start.sub quick_start-0.1 c2-7.5gb-31
@@ -31,11 +31,11 @@ This document describes the workflow for running CANFAR batch processing jobs us
 
 # Steps to create new users:
 
-1. goto os arbutus gui using canfarops account, download name-openrc.sh file
+1. go to Openstack Arbutus web frontend using canfarops account, download name-openrc.sh file
 
 2. copy openrc file to batch under canfarops
 
-3. copy openrc into projects-openrc in canfarops dir
+3. copy openrc into projects-openrc in canfarops directory
 
 4. sudo canfar_create_user username projectname
 
@@ -45,7 +45,7 @@ This document describes the workflow for running CANFAR batch processing jobs us
 
 
 
-# Flow diagram:
+# Job submission flow diagram:
 
 ```
 -> canfar_submit 
@@ -76,7 +76,7 @@ This document describes the workflow for running CANFAR batch processing jobs us
 
 ### DESCRIPTION:
 
- User script for submitting jobs. A wrapper for canfar_translate_vm, canfar_job_validate and condor_submit. Normally a user should use canfar_translate_vm so that the job goes through the web service. This script avoids the web service and can submit jobs directly on the head node for testing purposes.
+A user script for submitting batch jobs. A wrapper for canfar_translate_vm, canfar_job_validate and condor_submit. Normally a user should use canfar_translate_vm so that the job goes through the web service. This script avoids the web service and can submit jobs directly on the head node for testing purposes.
 
 ### INPUTS:
       JOB_FILE     - HTCondor job submission file
@@ -95,27 +95,27 @@ This document describes the workflow for running CANFAR batch processing jobs us
 
 ### FLOW:
 
-  - Store all input options options
+  1. Store all input options options
 
-  - Verify input and warn if you are submitting jobs without a VOSPace access certificate
+  2. Verify input and warn if you are submitting jobs without a VOSPace access certificate
 
-  - If one of the argument requirements fails, the script will exit.
+  3. If one of the argument requirements fails, the script will exit.
 
-  - Validate user's job file (in jdl format typically with a \*.sub extsion, although this doesn't matter in practice).
+  4. Validate user's job file (in jdl format typically with a \*.sub extsion, although this doesn't matter in practice).
 
-  - First the executable is extracted
+  5. First the executable is extracted
 
-  - Ensure user has authorized access to their op project via sourcing rc file..
+  6. Ensure user has authorized access to their op project via sourcing rc file..
 
-  - Share the image and translate image and flavor names to their IDs, which is what canfar_job_validate expects.
+  7. Share the image and translate image and flavour names to their IDs, which is what canfar_job_validate expects.
 
-  - "canfar_translate_vm" is called to share images to other projects, it then returns the image ID and flavor ID (UUID)
+  8. "canfar_translate_vm" is called to share images to other projects, it then returns the image ID and flavor ID (UUID)
 
-  - "canfar_job_validate" is then called and modifies the user submitted jdl file.  It adds some options and variables to the top of the user submitted job script to make it compatible with the conder and cloudscheduler v1 system.
+  9. "canfar_job_validate" is then called and modifies the user submitted jdl file.  It adds some options and variables to the top of the user submitted job script to make it compatible with the conder and cloudscheduler v1 system.
 
-  - "cadc_cert" is called to inject user certs into the vm (this is not often used... maybe not needed by most users.)
+  10. "cadc_cert" is called to inject user certs into the vm (this is not often used... maybe not needed by most users.)
 
-  - The modified jdl file is then summited condor by calling "condor_submit"
+  11. The modified jdl file is then summited condor by calling "condor_submit"
 
 
 
@@ -142,21 +142,21 @@ This document describes the workflow for running CANFAR batch processing jobs us
 
 ### FLOW:
 
-  - Get cloud credentials from system environment variables
+  1. Get cloud credentials from system environment variables
 
-  - Parse command line
+  2. Parse command line
 
-  - Get cloud credentials from system environment variables
+  3. Get cloud credentials from system environment variables
 
-  - Need an image ID. If the user supplied a name, convert it to ID.
+  4. Need an image ID. If the user supplied a name, convert it to ID.
 
-  - List images and search for ID
+  5. List images and search for ID
 
-  - Share the image with batch project
+  6. Share the image with batch project
 
-  - CANFAR project ID is allowed to access user image (g is glance) 
+  7. CANFAR project ID is allowed to access user image (g is glance) 
 
-  - We will require a flavor ID. If the user supplied a name, convert it to ID.
+  8. We will require a flavor ID. If the user supplied a name, convert it to ID.
 
 
 
@@ -164,11 +164,9 @@ This document describes the workflow for running CANFAR batch processing jobs us
 
 ### DESCRIPTION:
 
-  A user provides a bare condor job description file, as well as image and flavor IDs.
-
-  This script validates these inputs and writes an augmented condor job file including extra cloud scheduler parameters to stdout (or a specified output file), and also generates a cloud-config script that cloud scheduler will use to configure running instances of the VM to work with Condor.
-
-  Bad exit status is set upon failure.
+This script validates these inputs and writes an augmented condor job file including extra cloud scheduler parameters to stdout (or a specified output file), and also generates a cloud-config script that cloud scheduler will use to configure running instances of the VM to work with Condor. 
+ 
+ A user provides a bare condor job description file, as well as image and flavor IDs.  Bad exit status is set upon failure.
 
 ### INPUTS:
       CM_IP
@@ -184,17 +182,17 @@ This document describes the workflow for running CANFAR batch processing jobs us
 
 ### FLOW:
 
-* Parse command line
+1. Parse command line
 
-* Check for valid UUIDs
+2. Check for valid UUIDs
 
-* Check parameters in jobfile
+3. Check parameters in jobfile
 
-* Re-write 'Executable' line since the proc web service will have placed it somewhere different from the user's original location
+4. Re-write 'Executable' line since the proc web service will have placed it somewhere different from the user's original location
 
-* Determine the name of the image from its UUID, and the name of the project that owns it. First we get a glance client to get the name of the given image ID. We then query that image's metadata to obtain its owner project id. Finally, we use a second keystone client scoped to the image's owner project to obtain its project name.
+5. Determine the name of the image from its UUID, and the name of the project that owns it. First we get a glance client to get the name of the given image ID. We then query that image's metadata to obtain its owner project id. Finally, we use a second keystone client scoped to the image's owner project to obtain its project name.
 
-* Generate cloud config file for this user as follows:
+6. Generate cloud config file for the user as follows:
 
    - inject a public ssh key into the generic user account
    - write and execute the cloud scheduler configuration script
@@ -211,44 +209,54 @@ This document describes the workflow for running CANFAR batch processing jobs us
 # Other script descriptions:
 
 
-- **cadc_cert** -> wrapper for getCert          
+- **cadc_cert** 
+	- wrapper for getCert          
 
-- **canfar_condor_user_stats** -> runs as a cronjob to extract stats from condor_history
+- **canfar_condor_user_stats** 
+	- runs as a cronjob to extract stats from condor_history
 
-- **canfar_list_quotas** -> gens csv cores, id, gigs (disk usage), ram name of canfar projects
+- **canfar_list_quotas** 
+	- gens csv cores, id, gigs (disk usage), ram name of canfar projects
 
-- **canfar_project_stats** -> cronjob which creates stats for openstack, loops throught projects and rungs "openstack usage show"
+- **canfar_project_stats** 
+	- cronjob which creates stats for openstack, loops throught projects and rungs "openstack usage show"
 
-- **canfar_update_default_image** -> perpares canfar default snapshots and shares them with all projects...
+- **canfar_update_default_image** 
+	- perpares canfar default snapshots and shares them with all projects...
 
-- **cadc_dotnetrc** - adds user creds for cadc 
+- **cadc_dotnetrc**
+	- adds user creds for cadc 
 
-- **canfar_create_batch_user** -> adds a user to batch.canfar.net with an accociated os project..
+- **canfar_create_batch_user**
+	- adds a user to batch.canfar.net with an accociated os project..
 
-- **canfar_openstack_stats** -> outputs cores-years within a specified data range
-
-
-- **canfar_share_vm** -> shares a vm/snapshot between projects. it also does acceptance on opentstack side, used by canfar_update_default_image
-
-- **runCanfarJobValidate.sh** -> calls canfar_job_validate (not used...)
-
-- **canfar_cloud_cleanup**  -> cleans up vms which get lost between condor and cs. (probably not needed with csv2). Cleans up zombie vms which have no more jobs to run and cs isn't shutting down... This is run every every 3 hours via cron
-
-- **canfar_inject_cert** -> not used anymore
-
-- **canfar_project_remove_prompt** -> store user creds inside rc file to remove need to input them every time... not very secure...
-
-- **runCondorSubmit.sh** -> not used
-
-- **canfar_condor_csv**  -> translates condor history file into csv for stats
-
-- **canfar_job_validate** -> old and gone
-
-- **canfar_project_restore_prompt** -> does opposite of canfar_project_remove_prompt
+- **canfar_openstack_stats**
+	- outputs cores-years within a specified data range
 
 
+- **canfar_share_vm**
+	- shares a vm/snapshot between projects. it also does acceptance on opentstack side, used by canfar_update_default_image
 
+- **runCanfarJobValidate.sh**
+	- calls canfar_job_validate (not used...)
 
+- **canfar_cloud_cleanup**
+	- cleans up vms which get lost between condor and cs. (probably not needed with csv2). Cleans up zombie vms which have no more jobs to run and cs isn't shutting down... This is run every every 3 hours via cron
 
+- **canfar_inject_cert**
+	- not used anymore
 
+- **canfar_project_remove_prompt**
+	- store user creds inside rc file to remove need to input them every time... not very secure...
 
+- **runCondorSubmit.sh**
+	- not used
+
+- **canfar_condor_csv**
+	- translates condor history file into csv for stats
+
+- **canfar_job_validate**
+	- old and gone
+
+- **canfar_project_restore_prompt**
+	- does opposite of canfar_project_remove_prompt
