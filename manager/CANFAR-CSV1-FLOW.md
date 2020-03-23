@@ -1,51 +1,46 @@
 # CANFAR Batch Workflow using CloudScheduler V1
 
-This document describes the workflow for running CANFAR batch processing jobs using CloudScheduler version 1. This is largely meant to be a historical document in preparation for migrating the batch system to using CloudScheduler version 2.  
+This document describes the workflow for running CANFAR batch processing jobs using CloudScheduler version 1. This is largely meant to be a historical document in preparation for migrating the batch system to using CloudScheduler version 2.
 
 
 # Canfar new user flow:
 
+1. The user creates CADC account. This will give them access to storage on VOSpace.
+	- They need to have access to a storage space.
+	- If none specified by user, require a name from user and run the `vospace-admin` to create one.
 
-1. The user creates CADC account:
-	- They need a VOSpace account first
-
-2. The user needs to be added to the Arbutus OpenStack cloud: 
-    - go to group management system, canfar.net - login with cadc
+2. The user needs to be added to the Arbutus OpenStack cloud group: 
+    - go to group management system, canfar.net
     - add user to group arbutus-cloud-users as member
-    - add user (cadc username) to cadc project
+
+If user needs batch, see below.
+
+# Steps to create new batch users
+
+1. Go to Openstack Arbutus web frontend using canfarops account, download projectname-openrc.sh file
+
+2. `scp projectname-openrc.sh canfarops@batch.canfar.net`
+
+3. `cp projectname-openrc.sh ~/projects-openrc/`
+
+4. `sudo canfar_create_user username projectname`
+
+5. `canfar_project_remove_prompt projectname-openrc.sh` (be sure to use canfarops password, for stats)
+
+6. `mv name-openrc.sh /mnt/stats/openstack/projects/arbutus`
+
+7.  Ask user ssh public key, add key to ~/.ssh/authorized_keys in user's home directory.
 
 
-3. ssh to batch.canfar.net as admin (hosts CloudScheduler V1 and condor)
-    - sudo canfar_create_batch_user cadcusername projectname  (this must be on group cadc... very important!)
-      eg: sudo canfar_create_batch_user casteels cadc
-    - for new a user, add key to .ssh/authorized_keys in user's home directory 
+# Job submission flow
 
-4. The user can then submit their jobs to the condor job pool with the "canfar_submit" command:
+- The user can then submit their jobs to the condor job pool with the `canfar_submit` command.
       eg: canfar_submit quick_start.sub quick_start-0.1 c2-7.5gb-31
 
-* A proxy cert is issued from OpenStack GUI (generated from grid canada cert with expiry). getCert command pulls in (cadc_cert command in canfar_submit) (cadc_cert can be replaced by getcert)
-
-* condor will upload cert to workers and gives access to VOSpace
-
+-  A proxy cert is issued from OpenStack (generated from grid canada cert with expiry). `cadc-get-cert`  command pulls in (`cadc_cert` wrapper command called from `canfar_submit`)
+- condor will upload cert to workers and gives access to VOSpace
 
 
-# Steps to create new users:
-
-1. go to Openstack Arbutus web frontend using canfarops account, download name-openrc.sh file
-
-2. copy openrc file to batch under canfarops
-
-3. copy openrc into projects-openrc in canfarops directory
-
-4. sudo canfar_create_user username projectname
-
-5. canfar_project_remove_prompt name-openrc.sh (be sure to use canfarops password, for stats)
-
-6. mv name-openrc.sh /mnt/stats/openstack/projects/arbutus
-
-
-
-# Job submission flow diagram:
 
 ```
 -> canfar_submit 
@@ -70,13 +65,14 @@ This document describes the workflow for running CANFAR batch processing jobs us
     |
   cloudscheduler V1 (watches condor and starts VMs as needed)
 ```
-# Script descriptions:
 
-## canfar_submit:
+# Script descriptions
+
+## `canfar_submit`:
 
 ### DESCRIPTION:
 
-A user script for submitting batch jobs. A wrapper for canfar_translate_vm, canfar_job_validate and condor_submit. Normally a user should use canfar_translate_vm so that the job goes through the web service. This script avoids the web service and can submit jobs directly on the head node for testing purposes.
+A user script for submitting batch jobs. A wrapper for `canfar_translate_vm`, `canfar_job_validate` and `condor_submit`.  This script avoids the CANFAR proc web service which does not have enough features, and can submit jobs directly on the head node for testing purposes.
 
 ### INPUTS:
       JOB_FILE     - HTCondor job submission file
@@ -91,36 +87,36 @@ A user script for submitting batch jobs. A wrapper for canfar_translate_vm, canf
       -v, --verbose             verbose mode for debugging
 
 ### USAGE:
-      canfar_submit [OPTION] JOB_FILE VM_IMAGE VM_FLAVOR
+      `canfar_submit [OPTION] JOB_FILE VM_IMAGE VM_FLAVOR`
 
 ### FLOW:
 
-  1. Store all input options options
+  1. Store all input options
 
   2. Verify input and warn if you are submitting jobs without a VOSPace access certificate
 
   3. If one of the argument requirements fails, the script will exit.
 
-  4. Validate user's job file (in jdl format typically with a \*.sub extsion, although this doesn't matter in practice).
+  4. Validate user's job submission file (with an executable).
 
   5. First the executable is extracted
 
-  6. Ensure user has authorized access to their op project via sourcing rc file..
+  6. Ensure user has authorized access to their OpenStack project (which was done via sourcing rc file)
 
-  7. Share the image and translate image and flavour names to their IDs, which is what canfar_job_validate expects.
+  7. Share the image and translate image and flavour names to their IDs, which is what `canfar_job_validate` expects.
 
-  8. "canfar_translate_vm" is called to share images to other projects, it then returns the image ID and flavor ID (UUID)
+  8. `canfar_translate_vm` is called to share images to other projects, it then returns the image ID and flavor ID (UUID)
 
-  9. "canfar_job_validate" is then called and modifies the user submitted jdl file.  It adds some options and variables to the top of the user submitted job script to make it compatible with the conder and cloudscheduler v1 system.
+  9. `canfar_job_validate` is then called and modifies the user submitted jdl file.  It adds some options and variables to the top of the user submitted job script to make it compatible with the conder and cloudscheduler v1 system.
 
-  10. "cadc_cert" is called to inject user certs into the vm (this is not often used... maybe not needed by most users.)
+  10. `cadc_cert` is called to inject user certs into the vm (this is not often used because many users still create a proxy certificate within their processing scripts).
 
-  11. The modified jdl file is then summited condor by calling "condor_submit"
-
-
+  11. The modified HTcondor submission file is then summited condor by calling `condor_submit`
 
 
-## canfar_translate_vm:
+
+
+## `canfar_translate_vm`:
 
 ### DESCRIPTION:
 
@@ -137,7 +133,7 @@ A user script for submitting batch jobs. A wrapper for canfar_translate_vm, canf
 
 
 ### USAGE:
-      canfar_translate_vm [options] VM_IMAGE VM_FLAVOR
+      `canfar_translate_vm [options] VM_IMAGE VM_FLAVOR`
 
 
 ### FLOW:
@@ -152,7 +148,7 @@ A user script for submitting batch jobs. A wrapper for canfar_translate_vm, canf
 
   5. List images and search for ID
 
-  6. Share the image with batch project
+  6. Share the user image with batch project
 
   7. CANFAR project ID is allowed to access user image (g is glance) 
 
@@ -160,7 +156,7 @@ A user script for submitting batch jobs. A wrapper for canfar_translate_vm, canf
 
 
 
-## canfar_job_validate:
+## `canfar_job_validate`:
 
 ### DESCRIPTION:
 
@@ -177,7 +173,7 @@ This script validates these inputs and writes an augmented condor job file inclu
       VM_IMAGE_AND_FLAVOR_IDS
 
 ### USAGE:
-      canfar_job_validate CM_IP CERT_USER JOB_USER JOB_FILE JOB_SCRIPT VM_IMAGE_AND_FLAVOR_IDS
+      `canfar_job_validate CM_IP CERT_USER JOB_USER JOB_FILE JOB_SCRIPT VM_IMAGE_AND_FLAVOR_IDS`
 
 
 ### FLOW:
@@ -210,16 +206,16 @@ This script validates these inputs and writes an augmented condor job file inclu
 
 
 - **cadc_cert** 
-	- wrapper for getCert          
+	- tries to create a CADC proxy cert in many ways.
 
-- **canfar_condor_user_stats** 
-	- runs as a cronjob to extract stats from condor_history
+- **canfar_condor_user_stats**
+	- runs as a cronjob to extract stats from rolling `condor_history`
 
 - **canfar_list_quotas** 
 	- gens csv cores, id, gigs (disk usage), ram name of canfar projects
 
 - **canfar_project_stats** 
-	- cronjob which creates stats for openstack, loops throught projects and rungs "openstack usage show"
+	- aimed to be run as a cron job which creates stats for openstack, loops throught projects and runs `openstack usage show`
 
 - **canfar_update_default_image** 
 	- perpares canfar default snapshots and shares them with all projects...
@@ -233,12 +229,11 @@ This script validates these inputs and writes an augmented condor job file inclu
 - **canfar_openstack_stats**
 	- outputs cores-years within a specified data range
 
-
 - **canfar_share_vm**
-	- shares a vm/snapshot between projects. it also does acceptance on opentstack side, used by canfar_update_default_image
+	- shares a vm/snapshot between projects. it also does acceptance on opentstack side, used by `canfar_update_default_image`
 
 - **runCanfarJobValidate.sh**
-	- calls canfar_job_validate (not used...)
+	- calls `canfar_job_validate` (was used by proc web service)
 
 - **canfar_cloud_cleanup**
 	- cleans up vms which get lost between condor and cs. (probably not needed with csv2). Cleans up zombie vms which have no more jobs to run and cs isn't shutting down... This is run every every 3 hours via cron
@@ -250,7 +245,7 @@ This script validates these inputs and writes an augmented condor job file inclu
 	- store user creds inside rc file to remove need to input them every time... not very secure...
 
 - **runCondorSubmit.sh**
-	- not used
+	- calls `condor_submit` (was used by proc web service in the past)
 
 - **canfar_condor_csv**
 	- translates condor history file into csv for stats
@@ -259,4 +254,4 @@ This script validates these inputs and writes an augmented condor job file inclu
 	- old and gone
 
 - **canfar_project_restore_prompt**
-	- does opposite of canfar_project_remove_prompt
+	- does opposite of `canfar_project_remove_prompt`
