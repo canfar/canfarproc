@@ -2,6 +2,7 @@
 prefix ?= /usr/local
 bindir = $(prefix)/bin
 datadir = $(prefix)/share/canfar
+etcdir = /etc
 
 INSTALL = install -c
 INSTALL_SCRIPT = $(INSTALL)
@@ -9,13 +10,26 @@ INSTALL_DATA = $(INSTALL) -m 644
 MKDIR_P = mkdir -p
 RM = rm -f
 
-SCRIPTS = canfar_submit canfar_job_validate cansub \
-	  canfar_cloud_cleanup canfar_inject_cert
+SCRIPTS = \
+	cadc_cert \
+	cadc_dotnetrc \
+	canfar_cloud_cleanup \
+	canfar_condor_csv \
+	canfar_condor_user_stats \
+	canfar_create_batch_user \
+	canfar_job_validate \
+	canfar_openstack_stats \
+	canfar_project_remove_prompt \
+	canfar_project_restore_prompt \
+	canfar_project_stats \
+	canfar_share_vm \
+	canfar_submit \
+	canfar_translate_vm \
+	canfar_update_default_image
 
 WORKER_SCRIPTS = canfar_batch_cert canfar_batch_init
 
 DATA = canfar_batch_rsa.pub
-
 
 install: 
 	@$(MKDIR_P) $(DESTDIR)$(bindir) ; \
