@@ -85,6 +85,9 @@ CM_IP="--cmip=10.21.0.26"
 
 [[ -e ${JOB_FILE} ]] || die "HTCondor job submission file '${JOB_FILE}' does not exist"
 
+#-------------------------------------------
+#Validate *.sub file...
+
 # Extract executable
 JOB_SCRIPT="$(grep -i '^[^#]*Executable\s*=' ${JOB_FILE} | cut -d= -f2 | awk '{print $1}')" \
     || die "could not search for 'executable' in ${JOB_FILE}"
@@ -94,20 +97,25 @@ JOB_SCRIPT="$(grep -i '^[^#]*Executable\s*=' ${JOB_FILE} | cut -d= -f2 | awk '{p
 [[ -e ${JOB_SCRIPT} ]] \
     || die "executable '${JOB_SCRIPT}' extracted from ${JOB_FILE} does not exist on batch"
 
+#Ensure user has authorized access to their op project via sourcing rc file
 if [[ -z ${OS_AUTH_URL} ]] || [[ -z ${OS_PROJECT_ID} ]] || [[ -z ${OS_PROJECT_NAME} ]] || \
        [[ -z ${OS_USERNAME} ]] || [[ -z ${OS_PASSWORD} ]]; then
     rcfiles=$(ls -1 ~/*-openrc.sh)
     die "OpenStack environment variables not set\n Try sourcing either:\n${rcfiles}"
 fi
-
+#-------------------------------------------
 # Share the image and translate image and flavor names to their IDs, which is what canfar_job_validate expects.
 [[ -n ${VERBOSE} ]] && msg "running canfar_translate_vm ${VM_IMAGE} ${VM_FLAVOR}"
 VM_IMAGE_AND_FLAVOR_IDS=$(canfar_translate_vm ${VM_IMAGE} ${VM_FLAVOR} 2>&1) \
     || die "canfar_translate_vm failed with the error below\n >> canfar_translate_vm ${VM_IMAGE_AND_FLAVOR_IDS}"
 
+#-------------------------------------------
+
 # big string for the job
 [[ -n ${VERBOSE} ]] && msg "running canfar_job_validate ${CM_IP} ${CERT_USER} ${JOB_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS}"
 
+
+# canfar_job_validate modifies user subission file to create condor jdl submission file
 jobfile="/var/cache/canfar/condor/canfar_submit_${USER}_$$.jdl"
 error=$((canfar_job_validate ${CM_IP} ${CERT_USER} ${JOB_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS} > ${jobfile}) 2>&1) \
     || die "submission failed with the error below\n >> canfar_job_validate ${error}"
@@ -116,8 +124,10 @@ error=$((canfar_job_validate ${CM_IP} ${CERT_USER} ${JOB_USER} ${JOB_FILE} ${JOB
 #    || die "submission failed with the error below\n >> canfar_job_validate ${JOB}"
 #echo "${JOB}" | condor_submit || die "failed to submit job(s) to queue. Failed job below\n${JOB}"
 
+# Injects user certs into vm (this is not often used... maybe not needed by most users.)
 cadc_cert ${VERBOSE} ${CERT}
 
+# Submit modified jdl file to condor
 if [[ -n ${VERBOSE} ]]; then
     msg "running condor_submit ${jobfile}"
     tmp_condor_out="/tmp/condor_submit_$$.jdl"
