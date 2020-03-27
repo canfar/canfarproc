@@ -223,7 +223,7 @@ canfar_setup_batch_network() {
     fi
     addstr="# Added for condor to specify central manager of local network"
     sed -i -e "/${CM_HOST_NAME}/d" ${etc_hosts}
-    if grep -q "${CM_HOST_IP}[[:space:]]*" ${etc_hosts} ; then
+    if grep -q "${CM_HOST_IP}[[:space:]]+" ${etc_hosts} ; then
 	sed -i -e "s:[[:space:]]${CM_HOST_IP}[[:space:]]*.*:${CM_HOST_IP} ${CM_HOST_NAME} ${addstr}:" ${etc_hosts}
     else
 	echo "${CM_HOST_IP} ${CM_HOST_NAME%%.*} ${CM_HOST_NAME} ${addstr}" >> ${etc_hosts}
