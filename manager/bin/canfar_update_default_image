@@ -1,7 +1,7 @@
 #!/bin/bash
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.1.0
+EXEC_VERSION=0.1.1
 
 msg() {
     echo -e " >> ${EXEC_NAME}: $1"
@@ -24,26 +24,42 @@ usage() {
     exit
 }
 
+unsource_os() {
+    unset $(env | grep OS_ | sed -e 's/\(.*\)=.*/\1/g') 
+}
+
+# not really used, but gives an idea
+# of what to do.
 update_image() {
-    local image=$1
+    local image=$1 server=${}
     openstack server create \
 	      --name ${image} \
 	      --key-name canfarops_rsa \
 	      --network VLAN2044 \
 	      --flavor c1-7.5gb-30 \
-	      --user-data ${image_updater} \
 	      ${image}
+    openstack server ssh -i .ssh/canfarops_rsa centos@${server}
+    # execute this once ssh'ed into:
+    #curl -L https://github.com/canfar/canfarproc/raw/master/worker/bin/canfar_update | sudo bash -
+    #snapshot image
 }
 
 share_image() {
     local image=$1
-    new_image=${image}-$(date -I)
-    old_image=${image}-old
-    canfar_share_vm --all ${new_image} cadc
-    openstack image set --name ${old_image} ${image}
+    local new_image=${image}-$(date -I)
+    local old_image=${image}-old
+    unsource_os
+    source /mnt/stats/openstack/projects/arbutus/cadc-openrc.sh
+    openstack image show ${new_image} > /dev/null || return
+    canfar_share_vm --all ${new_image} cadc    
+    openstack image show ${image} >/dev/null && \
+	openstack image set --name ${old_image} ${image}
     openstack image set --name ${image} ${new_image}
-    openstack image delete ${old_image}
+    openstack image show ${old_image} >/dev/null && \
+	openstack image delete ${old_image}
 }
+
+CANFAR_IMAGES="centos-7 centos-8 ubuntu-18.04"
 
 OPTS=$(getopt \
     -o hV \
@@ -64,8 +80,11 @@ while true; do
     shift
 done
 
-CANFAR_IMAGES="canfar-centos-7 canfar-centos-9 canfar-ubuntu-18.04"
+if [[ $# -ge 1 ]]; then
+    CANFAR_IMAGES="$*"
+fi
 
 for image in ${CANFAR_IMAGES}; do
-    share_image ${image}
+    msg "sharing ${image}"
+    share_image canfar-${image}
 done
