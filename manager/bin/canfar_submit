@@ -7,7 +7,7 @@
 # submit jobs directly on the head node for testing purposes.
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.3.4
+EXEC_VERSION=0.3.5
 
 msg() {
     echo -e " >> ${EXEC_NAME}: $1"
@@ -33,8 +33,8 @@ Submit a CANFAR batch job
   -c, --cert=<path>         specify path for proxy to access VOSpace (default: ${HOME}/.ssl/cadcproxy.pem)
   -u, --user=<username>     specify user to run the jobs on the VM (default: automatically detected)
   -h, --help                display help and exit
-  -V, --version             output version information and exit
-  -v, --verbose             verbose mode for debugging
+  -v, --version             output version information and exit
+  -V, --verbose             verbose mode for debugging
 "
     exit
 }
@@ -43,7 +43,7 @@ VERBOSE=
 
 # Store all options
 OPTS=$(getopt \
-    -o c:u:hVv \
+    -o c:u:hvV \
     -l cert: \
     -l user: \
     -l help \
@@ -61,8 +61,8 @@ while true; do
 	-c | --cert) CERT_USER="--cert=${2##=}"; shift ;;
 	-u | --user) JOB_USER="--submitter=${2##=}"; shift ;;	
 	-h | --help) usage ;;
-	-V | --version) echo ${EXEC_VERSION}; exit ;;
-	-v | --verbose) VERBOSE="--verbose" ;;
+	-v | --version) echo ${EXEC_VERSION}; exit ;;
+	-V | --verbose) VERBOSE="--verbose" ;;
 	--)  shift; break ;; # no more options
 	*) break ;; # parameters
     esac
@@ -79,9 +79,9 @@ VM_IMAGE=$2
 VM_FLAVOR=$3
 
 # SF 05/2019: use dynamic local LAN IP of the batch host VM.
-#CM_IP="--cmip=$(hostname -I)"
+CM_IP="--cmip=$(hostname -I)"
 # SF 10/2019: had to hardcode the IP because we switched to 2 networks and the batch VM network is not visible anymore
-CM_IP="--cmip=10.21.0.26"
+#CM_IP="--cmip=10.21.0.26"
 
 [[ -e ${JOB_FILE} ]] || die "HTCondor job submission file '${JOB_FILE}' does not exist"
 
@@ -125,7 +125,7 @@ error=$((canfar_job_validate ${CM_IP} ${CERT_USER} ${JOB_USER} ${JOB_FILE} ${JOB
 #echo "${JOB}" | condor_submit || die "failed to submit job(s) to queue. Failed job below\n${JOB}"
 
 # Injects user certs into vm (this is not often used... maybe not needed by most users.)
-cadc_cert ${VERBOSE} ${CERT}
+cadc_cert ${VERBOSE} ${CERT_USER}
 
 # Submit modified jdl file to condor
 if [[ -n ${VERBOSE} ]]; then
