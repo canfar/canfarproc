@@ -114,7 +114,7 @@ while true; do
 	-c | --cert) CADC_CERT_PATH=${2##=}; shift ;;
 	-u | --user) CADC_USER=${2##=}; shift ;;
 	-h | --help) usage ;;
-	-V | --version) echo ${EXEC_VERSION}; exit ;;
+	-v | --version) echo ${EXEC_VERSION}; exit ;;
 	--)  shift; break ;; # no more options
 	*) break ;; # parameters
     esac

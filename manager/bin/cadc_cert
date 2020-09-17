@@ -36,9 +36,9 @@ Try to generate a new proxy cert with minimum validity for processing
 
   -c, --cert=<path>         CADC proxy certificate file path (default: ${CADC_CERT_DEFAULT_PATH})
   -u, --user=<user>         CADC username to use to fetch the cert for (default: ${CADC_USER})
-  -v, --verbose             verbose for debugging
+  -V, --verbose             verbose for debugging
   -h, --help                display help and exit
-  -V, --version             output version information and exit
+  -v, --version             output version information and exit
 
 "
     exit
@@ -85,7 +85,7 @@ cadc_check_cert() {
 
 # Store all options
 OPTS=$(getopt \
-    -o c:u:hvV \
+    -o c:u:hVv \
     -l cert: \
     -l user: \
     -l help \
@@ -102,8 +102,8 @@ while true; do
 	-c | --cert) CADC_CERT_PATH=${2##=}; shift ;;
 	-u | --user) CADC_USER=${2##=}; shift ;;
 	-h | --help) usage ;;
-	-v | --verbose) VERBOSE=true ;;
-	-V | --version) echo ${EXEC_VERSION}; exit ;;
+	-V | --verbose) VERBOSE=true ;;
+	-v | --version) echo ${EXEC_VERSION}; exit ;;
 	--)  shift; break ;; # no more options
 	*) break ;; # parameters
     esac

@@ -64,7 +64,7 @@ eval set -- "${OPTS}"
 while true; do
     case "$1" in
 	-h | --help) usage ;;
-	-V | --version) echo ${EXEC_VERSION}; exit ;;
+	-v | --version) echo ${EXEC_VERSION}; exit ;;
 	--)  shift; break ;; # no more options
 	*) break ;; # parameters
     esac
