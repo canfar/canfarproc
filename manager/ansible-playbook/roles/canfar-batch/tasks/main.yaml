@@ -1,0 +1,98 @@
+
+---
+
+- include_vars: batch_vars.yaml
+
+
+
+- name: Disable SELinux
+  ansible.posix.selinux:
+    state: disabled
+
+
+
+- name: Set a hostname
+  hostname:
+    name: {{ new_hostname }}
+
+
+
+- name: Install epel7 repo
+  yum:
+    name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+    state: present
+
+
+
+- name: Import htcondor repo key
+  rpm_key:
+    state: present
+    key: https://research.cs.wisc.edu/htcondor/yum/RPM-GPG-KEY-HTCondor
+
+
+- name: Download htcondor repo file
+  get_url:
+    url: https://research.cs.wisc.edu/htcondor/yum/repo.d/htcondor-stable-rhel7.repo
+    dest: /etc/yum.repos.d/htcondor-stable-rhel7.repo
+    mode: '0644'
+
+
+
+- name: Install packages
+  yum:
+    name:
+      - git
+      - gcc
+      - python3
+      - python3-devel
+      - wget
+      - python-pip
+      - condor
+    state: present
+
+
+- name: Install bottle python package
+  pip:
+    name:
+      - python-keystoneclient
+      - python-novaclient
+      - python-glanceclient
+      - cryptography==2.4.2
+      - cadcutils==1.1.24
+
+
+
+- name: Stop condor if its running
+  service:
+    name: condor
+    state: stopped
+
+
+
+#Copy over condor config files...
+
+#Copy over other system files
+
+
+- name: Start condor
+  service:
+    name: condor
+    enabled: yes
+    state: started
+
+
+
+
+#cd /tmp
+#wget https://csv2.heprc.uvic.ca/repo/condor_poller.tar.gz
+#tar -xzvf condor_poller.tar.gz
+#rsync -av cloudscheduler /opt
+#/opt/cloudscheduler/utilities/service_disable_condor_poller
+#/opt/cloudscheduler/utilities/service_enable_condor_poller
+
+
+
+
+
+
+

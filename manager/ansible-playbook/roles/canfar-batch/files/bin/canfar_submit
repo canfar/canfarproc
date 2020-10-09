@@ -1,0 +1,142 @@
+#!/bin/bash
+#
+# User script for submitting jobs. A wrapper for canfar_translate_vm,
+# canfar_job_validate and condor_submit. Normally a user should
+# use canfar_translate_vm so that the job goes
+# through the web service. This script avoids the web service and can
+# submit jobs directly on the head node for testing purposes.
+
+EXEC_NAME=$(basename $0 .${0##*.})
+EXEC_VERSION=0.3.4
+
+msg() {
+    echo -e " >> ${EXEC_NAME}: $1"
+}
+
+warn() {
+    echo -e " ## WARNING ${EXEC_NAME}: $1"
+}
+
+die() {
+    echo -e " !! ERROR ${EXEC_NAME}: $1" 1>&2
+    exit 1
+}
+
+usage() {
+    echo $"Usage: ${EXEC_NAME} [OPTION] JOB_FILE VM_IMAGE VM_FLAVOR
+Submit a CANFAR batch job
+
+  JOB_FILE       HTCondor job submission file
+  VM_IMAGE       OpenStack VM image used to process jobs (name or ID)
+  VM_FLAVOR      OpenStack VM resource flavor used to process jobs
+
+  -c, --cert=<path>         specify path for proxy to access VOSpace (default: ${HOME}/.ssl/cadcproxy.pem)
+  -u, --user=<username>     specify user to run the jobs on the VM (default: automatically detected)
+  -h, --help                display help and exit
+  -V, --version             output version information and exit
+  -v, --verbose             verbose mode for debugging
+"
+    exit
+}
+
+VERBOSE=
+
+# Store all options
+OPTS=$(getopt \
+    -o c:u:hVv \
+    -l cert: \
+    -l user: \
+    -l help \
+    -l version \
+    -l verbose \
+    -- "$@")
+
+eval set -- "${OPTS}"
+
+JOB_USER=
+CERT_USER=
+
+while true; do
+    case "$1" in
+	-c | --cert) CERT_USER="--cert=${2##=}"; shift ;;
+	-u | --user) JOB_USER="--submitter=${2##=}"; shift ;;	
+	-h | --help) usage ;;
+	-V | --version) echo ${EXEC_VERSION}; exit ;;
+	-v | --verbose) VERBOSE="--verbose" ;;
+	--)  shift; break ;; # no more options
+	*) break ;; # parameters
+    esac
+    shift
+done
+
+[[ $# -eq 3 ]] || usage
+
+[[ -z ${CERT_USER} ]] && [[ ! -e ${HOME}/.ssl/cadcproxy.pem ]] && \
+    warn "you are submitting jobs without a VOSPace access certificate"
+
+JOB_FILE=$1
+VM_IMAGE=$2
+VM_FLAVOR=$3
+
+# SF 05/2019: use dynamic local LAN IP of the batch host VM.
+#CM_IP="--cmip=$(hostname -I)"
+# SF 10/2019: had to hardcode the IP because we switched to 2 networks and the batch VM network is not visible anymore
+CM_IP="--cmip=10.21.0.26"
+
+[[ -e ${JOB_FILE} ]] || die "HTCondor job submission file '${JOB_FILE}' does not exist"
+
+#-------------------------------------------
+#Validate *.sub file...
+
+# Extract executable
+JOB_SCRIPT="$(grep -i '^[^#]*Executable\s*=' ${JOB_FILE} | cut -d= -f2 | awk '{print $1}')" \
+    || die "could not search for 'executable' in ${JOB_FILE}"
+
+[[ -z ${JOB_SCRIPT} ]] \
+    && die "could not extract 'executable' from ${JOB_FILE}"
+[[ -e ${JOB_SCRIPT} ]] \
+    || die "executable '${JOB_SCRIPT}' extracted from ${JOB_FILE} does not exist on batch"
+
+#Ensure user has authorized access to their op project via sourcing rc file
+if [[ -z ${OS_AUTH_URL} ]] || [[ -z ${OS_PROJECT_ID} ]] || [[ -z ${OS_PROJECT_NAME} ]] || \
+       [[ -z ${OS_USERNAME} ]] || [[ -z ${OS_PASSWORD} ]]; then
+    rcfiles=$(ls -1 ~/*-openrc.sh)
+    die "OpenStack environment variables not set\n Try sourcing either:\n${rcfiles}"
+fi
+#-------------------------------------------
+# Share the image and translate image and flavor names to their IDs, which is what canfar_job_validate expects.
+[[ -n ${VERBOSE} ]] && msg "running canfar_translate_vm ${VM_IMAGE} ${VM_FLAVOR}"
+VM_IMAGE_AND_FLAVOR_IDS=$(canfar_translate_vm ${VM_IMAGE} ${VM_FLAVOR} 2>&1) \
+    || die "canfar_translate_vm failed with the error below\n >> canfar_translate_vm ${VM_IMAGE_AND_FLAVOR_IDS}"
+
+#-------------------------------------------
+
+# big string for the job
+[[ -n ${VERBOSE} ]] && msg "running canfar_job_validate ${CM_IP} ${CERT_USER} ${JOB_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS}"
+
+
+# canfar_job_validate modifies user subission file to create condor jdl submission file
+jobfile="/var/cache/canfar/condor/canfar_submit_${USER}_$$.jdl"
+error=$((canfar_job_validate ${CM_IP} ${CERT_USER} ${JOB_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS} > ${jobfile}) 2>&1) \
+    || die "submission failed with the error below\n >> canfar_job_validate ${error}"
+
+#JOB=$(canfar_job_validate ${CM_IP} ${CERT_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS} 2>&1) \
+#    || die "submission failed with the error below\n >> canfar_job_validate ${JOB}"
+#echo "${JOB}" | condor_submit || die "failed to submit job(s) to queue. Failed job below\n${JOB}"
+
+# Injects user certs into vm (this is not often used... maybe not needed by most users.)
+cadc_cert ${VERBOSE} ${CERT}
+
+# Submit modified jdl file to condor
+if [[ -n ${VERBOSE} ]]; then
+    msg "running condor_submit ${jobfile}"
+    tmp_condor_out="/tmp/condor_submit_$$.jdl"
+    condor_submit ${jobfile} > ${tmp_condor_out} || die "failed to submit job(s) to queue. Failed job in ${jobfile}"
+    msg "successfully submitted $(awk '/submitted/ {print $1}' ${tmp_condor_out}) job(s) with file: ${jobfile}"
+    mv ${jobfile} /var/cache/canfar/condor/canfar_submit_${USER}_$(awk '/submitted/ {print $6}' ${tmp_condor_out})jdl
+    cat ${tmp_condor_out}
+    rm ${tmp_condor_out}
+else
+    condor_submit ${jobfile} || die "failed to submit job(s) to queue. Failed job in ${jobfile}"
+    rm -f ${jobfile}
+fi

@@ -1,0 +1,8 @@
+---
+
+- name: Configure Batch Server
+  hosts: batch-servers
+  user: root
+  roles:
+  - canfar-batch
+

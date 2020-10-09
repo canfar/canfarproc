@@ -1,0 +1,9 @@
+#!/bin/sh
+
+vosdir=vos:cadcstats/processing
+certfile=~canfarops/.ssl/cadc-vos.pem
+
+getCert --cert-filename ${certfile}
+vcp --certfile ${certfile} -v /mnt/stats/openstack/csv ${vosdir}/openstack/
+vcp --certfile ${certfile} -v /mnt/stats/htcondor ${vosdir}/
+vcp --certfile ${certfile} -v /var/log/tomcat?/catalina.* ${vosdir}/proc/

@@ -1,0 +1,29 @@
+#!/bin/bash
+
+openstack server list --format value --long --column 'Flavor Name' \
+    | grep ^c \
+    | sed -e 's|c\([0-9]\+\)-.*$|\1|g' \
+    | awk 'BEGIN{a=0}{a=a+$1}END{printf("Number of Compute cores currently in use: %d\n",a)}'
+
+openstack server list --format value --long --column 'Flavor Name' \
+    | grep ^p \
+    | sed -e 's|p\([0-9]\+\)-.*$|\1|g' \
+    | awk 'BEGIN{a=0}{a=a+$1}END{printf("Number of Persistent cores currently in use: %d\n",a)}'
+
+ncore=$(openstack quota show -f value -c cores)
+echo "Number of cores currently allocated: ${ncore}"
+
+echo
+
+openstack server list --format value --long --column 'Flavor Name' \
+    | grep ^c \
+    | sed -e 's|.*-\(.*\)gb.*$|\1|g' \
+    | awk 'BEGIN{a=0}{a=a+$1}END{printf("Compute RAM currently in use: %dG\n",a)}'
+
+openstack server list --format value --long --column 'Flavor Name' \
+    | grep ^p \
+    | sed -e 's|.*-\(.*\)gb$|\1|g' \
+    | awk 'BEGIN{a=0}{a=a+$1}END{printf("Persistent RAM currently in use: %dG\n",a)}'
+
+ram=$(openstack quota show -f value -c ram | awk '{printf("%d", $1/1000)}')
+echo "RAM currently allocated: ${ram}G"

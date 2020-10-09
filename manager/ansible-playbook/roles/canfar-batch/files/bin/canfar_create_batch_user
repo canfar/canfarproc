@@ -1,0 +1,84 @@
+#!/bin/bash
+
+EXEC_NAME=$(basename $0 .${0##*.})
+EXEC_VERSION=0.3.1
+
+HOME_DIR="/home/users"
+RCFILE_DIR="/home/canfarops/projects-openrc"
+
+msg() {
+    echo " >> ${EXEC_NAME}: $1"
+}
+
+die() {
+    echo " !! ERROR ${EXEC_NAME}: $1" 1>&2
+    exit 1
+}
+
+usage() {
+    echo $"Usage: ${EXEC_NAME} [username] [rcfile]...[rcfile]
+Create a local user for the batch processing node and assign rcfiles
+  -h, --help                display help and exit
+  -v, --version             output version information and exit
+"
+    exit
+}
+
+# create a user with sudo privs and ssh on the fly
+# for debian or fedora based distros
+# need to be run as root or sudo
+create_batch_user() {
+    local username=$1 project=$2
+    if getent passwd ${username} > /dev/null; then
+	msg "user ${username} already exist"
+    else
+	msg "adding ${username}"
+	useradd -m ${username} -s /bin/bash -b ${HOME_DIR} -g canfar \
+	    || die "failed to create user ${username}"
+    fi
+    msg "changing directory permissions"
+    chown ${username}:canfar -R ${HOME_DIR}/${username}
+}
+
+assign_rcfile() {
+    local username=$1 rcfile=$2
+    # assume rcfile is project name if we can't find it
+    [[ -e ${rcfile} ]] || rcfile=${RCFILE_DIR}/${rcfile}-openrc.sh
+    local rcuser="${HOME_DIR}/${username}/$(basename ${rcfile})"
+    [[ -e ${rcuser} ]] && msg "${username} has already ${rcuser}" && return
+    sed -e "/OS_USERNAME/s:OS_USERNAME=.*:OS_USERNAME=\"${username}\":" \
+	${rcfile} > ${rcuser}
+    chown ${username}:canfar ${rcuser}
+}
+
+# Store all options
+OPTS=$(getopt \
+    -o hv \
+    -l help \
+    -l version \
+    -- "$@")
+
+eval set -- "${OPTS}"
+
+# Process options
+while true; do
+    case "$1" in
+	-h | --help) usage ;;
+	-V | --version) echo ${EXEC_VERSION}; exit ;;
+	--)  shift; break ;; # no more options
+	*) break ;; # parameters
+    esac
+    shift
+done
+
+username=$1
+[[ -z ${username} ]] && read -p "Enter the CANFAR username for this new user: " username
+
+create_batch_user ${username}
+
+[[ $# -lt 2 ]] && exit 0
+
+shift
+for rcfile in $*; do
+    assign_rcfile ${username} ${rcfile}
+done

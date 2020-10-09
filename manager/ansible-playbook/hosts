@@ -1,0 +1,3 @@
+[batch-servers]
+batch-dev.canfar.net new_hostname=batch-dev.canfar.net
+

@@ -1,0 +1,143 @@
+#!/bin/bash
+#
+# Shell script to inject a CADC proxy cert into a HTCondor job submission file.
+#
+
+EXEC_NAME=$(basename $0 .${0##*.})
+EXEC_VERSION=0.1.2
+
+# Default path for CADC user X509 proxy cert
+CADC_CERT_PATH="${HOME}/.ssl/cadcproxy.pem"
+# min validation in days the cert has to be
+CADC_CERT_MIN_VALID=5
+# max validation in days the cert will be
+CADC_CERT_MAX_VALID=15
+# cadc url to check a valid cert
+CADC_URL="www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca"
+
+# the CADC user for the proxy cert if needed
+CADC_USER="${USER}"
+
+# the hook script to rename the proxy cert
+CANFAR_CERT_HOOK_SCRIPT="canfar_condor_cert_hook"
+
+msg() {
+    echo " >> ${EXEC_NAME}: $1"
+}
+
+die() {
+    echo " !! ERROR ${EXEC_NAME}: $1" 1>&2
+    exit 1
+}
+
+usage() {
+    echo $"Usage: ${EXEC_NAME} [OPTION] SUBFILE...SUBFILE
+Add the necessary cruft to inject proxy certificate.
+
+  -c, --cert          	    specify the CADC cert path to inject (default: ${CADC_CERT_PATH})
+  -u, --user          	    specify the CADC username to fetch the cert for (default: ${USER})
+  -h, --help                display help and exit
+  -v, --version             output version information and exit
+
+"
+    exit
+}
+
+# Fetch a proxy cert valid for $1 days. Check in order of priority::
+# 1. use an existing cert
+# 2. use a .netrc file
+# 3. prompt user a password
+cadc_get_cert() {
+    local days=$1
+    if [[ -e ${CADC_CERT_PATH} ]]; then
+	cadc-get-cert --quiet --days-valid=${days} --cert ${CADC_CERT_PATH} > /dev/null
+    elif grep -q ${CADC_URL}.*${CADC_USER} ${HOME}/.netrc 2> /dev/null; then
+	cadc-get-cert --quiet --days-valid=${days} --netrc-file > /dev/null
+    else
+	cadc-get-cert --quiet --days-valid=${days} --user ${CADC_USER} > /dev/null
+    fi
+}
+
+# Check a proxy cert for minimum days of validity for processing
+cadc_check_cert() {
+    if [[ ! -e ${CADC_CERT_PATH} ]]; then
+	msg "did not find certificate in '${CADC_CERT_PATH}, prompting you for cadc username/password"
+	cadc_get_cert ${CADC_CERT_MAX_VALID} || die "could not get a valid certificate"
+	return
+    fi
+    local last_day_valid="$(openssl x509 -in ${CADC_CERT_PATH} -enddate -noout | sed -e 's/notAfter=//')"
+    local days_left=$(( ( $(date --date="${last_day_valid}" +%s) - $(date --date="${today}" +%s) ) / 86400 ))
+    msg "proxy certificate is still valid for ${days_left} days"
+    if [[ ${days_left} -lt ${CADC_CERT_MIN_VALID} ]]; then
+	msg "renewing proxy certificate for ${CADC_CERT_MAX_VALID} days"
+	cadc_get_cert ${CADC_CERT_MAX_VALID} || die "could not renew proxy cert"
+    fi
+}
+
+# Replace key = value1,value2 in condor submission files
+# if key exists: replace key=oldval with key=oldval,newval
+# if not: append key=newval at the end of the file
+condor_keyval_replace_or_append_many() {
+    local key=$1 val=$2 subfile=$3
+    sed -e "/^[[:space:]]*${key}/{h;s|=\(.*\)|= \1,${val}|I};\${x;/^\$/{s||${key} = ${val}|;H};x}" \
+	${subfile}
+}
+
+# Replace key = value in condor submission files
+# if key exists: replace key=oldval with key=newval
+# if not: append key=newval at the end of the file
+condor_keyval_replace_or_append() {
+    local key=$1 val=$2 subfile=$3
+    sed -e "/^[[:space:]]*${key}/{h;s|=.*|= ${val}|I};\${x;/^\$/{s||${key} = ${val}|;H};x}" \
+	${subfile}
+}
+
+# Make sure that a condor submission transfers and put proxy cert in proper directory.
+# This is done by adding a few lines to a condor submission file:
+# should_transfer_files = YES
+# transfer_input_files = some_file, /my/proxy/path
+
+# Store all options
+OPTS=$(getopt \
+    -o c:u:hv \
+    -l cert: \
+    -l user: \
+    -l help \
+    -l version \
+    -- "$@")
+
+eval set -- "${OPTS}"
+
+# Process options
+while true; do
+    case "$1" in
+	-c | --cert) CADC_CERT_PATH=${2##=}; shift ;;
+	-u | --user) CADC_USER=${2##=}; shift ;;
+	-h | --help) usage ;;
+	-V | --version) echo ${EXEC_VERSION}; exit ;;
+	--)  shift; break ;; # no more options
+	*) break ;; # parameters
+    esac
+    shift
+done
+
+subfile=$1
+
+cadc_check_cert
+
+condor_keyval_replace_or_append \
+    "should_transfer_files" "yes" \
+    ${subfile} 
+condor_keyval_replace_or_append_many \
+    "transfer_input_files" "${CADC_CERT_PATH},${CANFAR_CERT_HOOK_SCRIPT}" \
+    ${subfile} 
+
+# condor will only transfer files to the exec directory
+# use a hook to move the cert to a user's ~/.ssl/
+# mandatory double quotes for +PreCmd and +PreArguments
+condor_keyval_replace_or_append \
+    "+PreCmd" "\"$(basename ${CANFAR_CERT_HOOK_SCRIPT})\"" \
+    ${subfile} 
+condor_keyval_replace_or_append \
+    "+PreArguments" "\"$(basename ${CADC_CERT_PATH})\"" \
+    ${subfile} 

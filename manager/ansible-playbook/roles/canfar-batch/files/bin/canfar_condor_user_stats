@@ -1,0 +1,26 @@
+#!/bin/bash
+
+condor_user_list() {
+    awk -F , '{print $1}' $* | sed -e 's|"||g' | \
+	awk '{print $1}' | grep -v Owner | sort | uniq
+}
+
+condor_user_report() {   
+    local user nusers=0
+    echo "user,coreyears,njobs" > ${report}
+    for user in $(condor_user_list $*); do
+	echo -n "${user},"
+	# $8 is for CumulativeSlotTime
+	awk -F , /${user}/' {u=u+$8;n=n+1;c=u/3600/24/365; printf "%f,%d\n",c,n}' $* | tail -n 1
+	((nusers++))
+    done >> ${report}
+    echo ${nusers}
+}
+
+[[ $# -lt 2 ]] && echo >&2 "Usage: $(basename $0) <output_file> <csv_history_file>" && exit
+
+report=$1
+shift
+nusers=$(condor_user_report ${report} $*)
+coreyears_jobs=$(awk -F, 'NR>1 {c=c+$2; n=n+$3; print c" core years "n" jobs"}' ${report} | tail -n 1)
+echo "${nusers} users ${coreyears_jobs}"

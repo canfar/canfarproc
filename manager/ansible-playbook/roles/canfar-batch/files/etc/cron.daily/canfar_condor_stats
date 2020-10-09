@@ -1,0 +1,9 @@
+#!/bin/bash
+
+PATH=/usr/local/bin:/usr/bin:/bin:/sbin:/usr/sbin
+
+logfile=/tmp/canfar_condor_stats.log
+condor_history_dir=/mnt/stats/htcondor/history
+
+cp -v $(condor_config_val HISTORY)* ${condor_history_dir} &> ${logfile}
+canfar_condor_csv >> ${logfile} 2>&1
