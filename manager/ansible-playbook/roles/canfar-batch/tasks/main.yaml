@@ -5,17 +5,15 @@
 
 
 
-- name: Disable SELinux
-  ansible.posix.selinux:
-    state: disabled
-
-
-
 - name: Set a hostname
   hostname:
-    name: {{ new_hostname }}
+    name: "{{ new_hostname }}"
 
 
+- name: Disable SElinux
+  selinux:
+    policy: targeted
+    state: disabled
 
 - name: Install epel7 repo
   yum:
@@ -47,11 +45,17 @@
       - python3-devel
       - wget
       - python-pip
-      - condor
+      - condor-all
     state: present
 
+- name: install the package, force upgrade
+  pip:
+    name: pip
+    executable: pip3
+    state: latest
 
-- name: Install bottle python package
+
+- name: Install openstack pip packages
   pip:
     name:
       - python-keystoneclient
@@ -59,6 +63,8 @@
       - python-glanceclient
       - cryptography==2.4.2
       - cadcutils==1.1.24
+    executable: pip3
+
 
 
 
@@ -70,6 +76,15 @@
 
 
 #Copy over condor config files...
+- name: Copy condor config files
+  copy:
+    src: "files/etc/condor/"
+    dest: /etc/condor/
+    owner: root
+    mode: 644
+
+
+
 
 #Copy over other system files
 
@@ -82,17 +97,25 @@
 
 
 
-
-#cd /tmp
-#wget https://csv2.heprc.uvic.ca/repo/condor_poller.tar.gz
-#tar -xzvf condor_poller.tar.gz
-#rsync -av cloudscheduler /opt
-#/opt/cloudscheduler/utilities/service_disable_condor_poller
-#/opt/cloudscheduler/utilities/service_enable_condor_poller
+- name: Disable condor poller
+  command: /opt/cloudscheduler/utilities/service_disable_condor_poller
+  ignore_errors: yes
 
 
+- name: Download condor poller intaller
+  get_url:
+    url: https://csv2-canfar.heprc.uvic.ca/repo/condor_poller.tar.gz
+    dest: /tmp/condor_poller.tar.gz
+    mode: '0640'
+
+- name: Extract condor poller
+  command: tar -xzvf /tmp/condor_poller.tar.gz --directory /opt
+  ignore_errors: yes
 
 
 
+- name: Enable condor poller
+  command: /opt/cloudscheduler/utilities/service_enable_condor_poller
+  ignore_errors: yes
 
 
