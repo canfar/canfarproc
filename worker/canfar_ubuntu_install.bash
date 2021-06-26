@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# This script might turn into a Dockerfile some day
-
 apt update -y
 apt dist-upgrade -y
 
@@ -12,10 +10,15 @@ else
     apt install python-pip -y
 fi
 
+# deps for cadc clients
+apt install python-is-python3 rustc libssl-dev
+
 curl -sL https://github.com/canfar/canfarproc/raw/master/worker/bin/canfar_update -o /usr/local/bin/canfar_update
 chmod +x /usr/local/bin/canfar_update
 
 canfar_update
-canfar_batch_prepare
+
+# install batch
+curl -sL https://github.com/canfar/canfarproc/raw/master/worker/bin/canfar_batch_prepare | bash
 
 apt clean -y
