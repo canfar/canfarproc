@@ -7,7 +7,7 @@
 # submit jobs directly on the head node for testing purposes.
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.3.5
+EXEC_VERSION=0.3.6
 
 msg() {
     echo -e " >> ${EXEC_NAME}: $1"
@@ -30,7 +30,6 @@ Submit a CANFAR batch job
   VM_IMAGE       OpenStack VM image used to process jobs (name or ID)
   VM_FLAVOR      OpenStack VM resource flavor used to process jobs
 
-  -c, --cert=<path>         specify path for proxy to access VOSpace (default: ${HOME}/.ssl/cadcproxy.pem)
   -u, --user=<username>     specify user to run the jobs on the VM (default: automatically detected)
   -h, --help                display help and exit
   -v, --version             output version information and exit
@@ -43,8 +42,7 @@ VERBOSE=
 
 # Store all options
 OPTS=$(getopt \
-    -o c:u:hvV \
-    -l cert: \
+    -o u:hvV \
     -l user: \
     -l help \
     -l version \
@@ -54,11 +52,9 @@ OPTS=$(getopt \
 eval set -- "${OPTS}"
 
 JOB_USER=
-CERT_USER=
 
 while true; do
     case "$1" in
-	-c | --cert) CERT_USER="--cert=${2##=}"; shift ;;
 	-u | --user) JOB_USER="--submitter=${2##=}"; shift ;;	
 	-h | --help) usage ;;
 	-v | --version) echo ${EXEC_VERSION}; exit ;;
@@ -106,7 +102,7 @@ fi
 #-------------------------------------------
 # Share the image and translate image and flavor names to their IDs, which is what canfar_job_validate expects.
 [[ -n ${VERBOSE} ]] && msg "running canfar_translate_vm ${VM_IMAGE} ${VM_FLAVOR}"
-VM_IMAGE_AND_FLAVOR_IDS=$(canfar_translate_vm ${VM_IMAGE} ${VM_FLAVOR} 2>&1) \
+VM_IMAGE_AND_FLAVOR_IDS=$(canfar_translate_vm ${VM_IMAGE} ${VM_FLAVOR} 2>/dev/null) \
     || die "canfar_translate_vm failed with the error below\n >> canfar_translate_vm ${VM_IMAGE_AND_FLAVOR_IDS}"
 
 #-------------------------------------------
@@ -125,7 +121,7 @@ error=$((canfar_job_validate ${CM_IP} ${CERT_USER} ${JOB_USER} ${JOB_FILE} ${JOB
 #echo "${JOB}" | condor_submit || die "failed to submit job(s) to queue. Failed job below\n${JOB}"
 
 # Injects user certs into vm (this is not often used... maybe not needed by most users.)
-cadc_cert ${VERBOSE} ${CERT_USER}
+cadc_cert ${VERBOSE}
 
 # Submit modified jdl file to condor
 if [[ -n ${VERBOSE} ]]; then
