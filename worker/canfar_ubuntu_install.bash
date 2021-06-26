@@ -11,7 +11,7 @@ else
 fi
 
 # deps for cadc clients
-apt install python-is-python3 rustc libssl-dev
+apt install python-is-python3
 
 curl -sL https://github.com/canfar/canfarproc/raw/master/worker/bin/canfar_update -o /usr/local/bin/canfar_update
 chmod +x /usr/local/bin/canfar_update
