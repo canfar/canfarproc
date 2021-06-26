@@ -6,11 +6,11 @@
 dnf install -y epel-release
 dnf update -y
 
-# bash love
-dnf install -y bash-completion
+# minimal user love
+dnf install -y bash-completion vim nano emacs-nox wget
 
 # deps for vos and cadc stuff
-dnf install -y python3-pip python3-devel python3-wheel openssl-devel
+dnf install -y python3-pip python3-devel python3-wheel openssl-devel rust cargo
 
 # stuff for pip and users might like to have fortran...
 dnf group install -y 'Development Tools'
