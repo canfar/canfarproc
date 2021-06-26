@@ -4,7 +4,7 @@
 #
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.1.9
+EXEC_VERSION=0.2.1
 
 # Default path for CADC user X509 proxy cert
 CADC_CERT_DEFAULT_PATH="${HOME}/.ssl/cadcproxy.pem"
@@ -34,28 +34,23 @@ usage() {
     echo $"Usage: ${EXEC_NAME} [OPTION]
 Try to generate a new proxy cert with minimum validity for processing
 
-  -c, --cert=<path>         CADC proxy certificate file path (default: ${CADC_CERT_DEFAULT_PATH})
   -u, --user=<user>         CADC username to use to fetch the cert for (default: ${CADC_USER})
-  -V, --verbose             verbose for debugging
+  -v, --verbose             verbose for debugging
   -h, --help                display help and exit
-  -v, --version             output version information and exit
+  -V, --version             output version information and exit
 
 "
     exit
 }
 
 # Fetch a proxy cert valid for $1 days, by:
-# 1. using an existing cert
-# 2. using a .netrc file
+# 1. using a .netrc file
+# 2. asking password
 cadc_get_cert() {
-    local days=$1 cert=$2
-    if [[ -n ${cert} ]] && [[ -e ${cert} ]]; then
-	[[ -n ${VERBOSE} ]] && msg "renewing a current valid CADC cert"
-	cadc-get-cert --quiet --days-valid=${days} --cert ${cert} &> /dev/null && return 0
-    fi
+    local days=$1
     if grep -q ${CADC_URL}.*${CADC_USER} ${HOME}/.netrc 2> /dev/null; then
 	[[ -n ${VERBOSE} ]] && msg "fetching a cert for ${CADC_USER} using ${HOME}/.netrc"
-	cadc-get-cert --quiet --days-valid=${days} --netrc-file > /dev/null && return 0
+	cadc-get-cert --quiet --days-valid=${days} -n > /dev/null && return 0
     fi
     if [[ -n ${CADC_USER} ]] ; then
 	[[ -n ${VERBOSE} ]] && msg "prompting user for CADC password"
@@ -80,13 +75,12 @@ cadc_check_cert() {
 	    msg "CADC proxy certificate is still valid for ${days_left} days, renewing anyway"
 	fi
     fi
-    cadc_get_cert ${CADC_CERT_MAX_VALID} ${cert} 	
+    cadc_get_cert ${CADC_CERT_MAX_VALID}
 }
 
 # Store all options
 OPTS=$(getopt \
-    -o c:u:hVv \
-    -l cert: \
+    -o u:hvV \
     -l user: \
     -l help \
     -l verbose \
@@ -99,11 +93,10 @@ eval set -- "${OPTS}"
 VERBOSE=
 while true; do
     case "$1" in
-	-c | --cert) CADC_CERT_PATH=${2##=}; shift ;;
 	-u | --user) CADC_USER=${2##=}; shift ;;
 	-h | --help) usage ;;
-	-V | --verbose) VERBOSE=true ;;
-	-v | --version) echo ${EXEC_VERSION}; exit ;;
+	-v | --verbose) VERBOSE=true ;;
+	-V | --version) echo ${EXEC_VERSION}; exit ;;
 	--)  shift; break ;; # no more options
 	*) break ;; # parameters
     esac
@@ -111,13 +104,6 @@ while true; do
 done
 
 valid=no
-
-if [[ -e ${CADC_CERT_PATH} ]]; then
-    [[ -n ${VERBOSE} ]] && msg "checking cert ${CADC_CERT_PATH}"
-    cadc_check_cert ${CADC_CERT_PATH} && valid=yes
-else
-    [[ -n ${VERBOSE} ]] && msg "user did not specify a valid cert file ${CADC_CERT_PATH}"
-fi
 
 if [[ -e ${PWD}/cadcproxy.pem ]] && [[ ${valid} == no ]]; then
     [[ -n ${VERBOSE} ]] && msg "checking cert ${PWD}/cadcproxy.pem"
