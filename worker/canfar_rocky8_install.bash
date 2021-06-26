@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# This script might turn into a Dockerfile some day
-
 # add EPEL repo for PIP
 dnf install -y epel-release
 dnf update -y
@@ -23,7 +21,9 @@ sed -e '/Defaults/s|:/usr/bin|:/usr/local/bin:/usr/bin:|' -i /etc/sudoers
 
 export PATH="/usr/local/bin:${PATH}"
 canfar_update
-canfar_batch_prepare
+
+# install batch
+curl -sL https://github.com/canfar/canfarproc/raw/master/worker/bin/canfar_batch_prepare | bash
 
 # cleanup
 dnf clean all -y
