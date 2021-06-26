@@ -16,5 +16,6 @@ curl -sL https://github.com/canfar/canfarproc/raw/master/worker/bin/canfar_updat
 chmod +x /usr/local/bin/canfar_update
 
 canfar_update
+canfar_batch_prepare
 
 apt clean -y

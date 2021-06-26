@@ -33,12 +33,16 @@ for script in ${SCRIPTS} ; do
 done
 
 PIP=pip3
-PACKAGES="vos vofs cadcutils cadcdata cadctap"
+PACKAGES="vos cadcutils cadcdata cadctap"
 
 # cadc clients do not work with python < 2.7
 # redhat-6 based distros have python-2.6
 # so hack for centos6, assuming python27-pip from ius repo is installed
 grep -q CentOS.*6.  /etc/redhat-release 2> /dev/null && PIP=pip2.7
 
-msg "updating CADC clients"
-${PIP} install --no-cache --upgrade ${PACKAGES}
+#msg "updating CADC clients"
+#${PIP} install --no-cache ${PACKAGES}
+
+# let user update because of python package management hell
+msg "You may want to update yourself CADC python clients"
+msg "${PIP} install -U ${PACKAGES}"

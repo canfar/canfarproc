@@ -1,7 +1,7 @@
 #!/bin/bash
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.1.3
+EXEC_VERSION=0.1.4
 
 msg() {
     echo -e " >> ${EXEC_NAME}: $1"
@@ -33,7 +33,7 @@ create_vm_user() {
     chmod 700 ${sshdir}
     # ouch - nasty
     local ciuser    
-    for ciuser in cloud-user debian ubuntu fedora centos ec2-user gentoo; do
+    for ciuser in cloud-user debian ubuntu fedora centos rocky ec2-user gentoo; do
 	cp /home/${ciuser}/.ssh/authorized_keys ${sshdir} 2> /dev/null && break
     done
     chown -R ${username}:${username} ${sshdir}
