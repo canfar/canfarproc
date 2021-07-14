@@ -1,7 +1,7 @@
 #!/bin/bash
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.2.2
+EXEC_VERSION=0.2.3
 
 msg() {
     echo -e " >> ${EXEC_NAME}: $1"
@@ -23,7 +23,7 @@ DOT_NETRC="${HOME}/.netrc"
 
 usage() {
     echo $"Usage: ${EXEC_NAME} [OPTIONS] USERNAME
-Check or create a ${DOT_NETRC} file ready for CADC web services
+Check or create a ${DOT_NETRC} file ready for CADC web services for USERNAME (default: ${USER})
 
   -h, --help                display help and exit
   -v, --version             output version information and exit
@@ -95,7 +95,11 @@ cadc_dotnetrc_make() {
 	echo >> ${DOT_NETRC} "machine ${url} login ${user} password ${psswd}"
     done
     chmod 600 ${DOT_NETRC}
-    #echo
+    echo
+    if type -P cadc_cert; then
+	msg "trying your ${DOT_NETRC} to grab a valid CADC proxy certificate"
+	cadc_cert -u ${user}
+    fi
     msg "${DOT_NETRC} is setup for CADC for user ${user}"
 }
 

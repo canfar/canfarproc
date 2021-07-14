@@ -47,7 +47,7 @@ share_image_with_project() {
 
 # Store all options
 OPTS=$(getopt \
-    -o ahV \
+    -o ahv \
     -l all \
     -l help \
     -l version \
@@ -62,7 +62,7 @@ while true; do
     case "$1" in
 	-a | --all) ALL_PROJECTS=true ;;
 	-h | --help) usage ;;
-	-V | --version) echo ${EXEC_VERSION}; exit ;;
+	-v | --version) echo ${EXEC_VERSION}; exit ;;
 	--)  shift; break ;; # no more options
 	*) break ;; # parameters
     esac
