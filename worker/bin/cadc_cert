@@ -4,7 +4,7 @@
 #
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.2.1
+EXEC_VERSION=0.3.0
 
 # Default path for CADC user X509 proxy cert
 CADC_CERT_DEFAULT_PATH="${HOME}/.ssl/cadcproxy.pem"
@@ -52,11 +52,9 @@ cadc_get_cert() {
 	[[ -n ${VERBOSE} ]] && msg "fetching a cert for ${CADC_USER} using ${HOME}/.netrc"
 	cadc-get-cert --quiet --days-valid=${days} -n > /dev/null && return 0
     fi
-    if [[ -n ${CADC_USER} ]] ; then
-	[[ -n ${VERBOSE} ]] && msg "prompting user for CADC password"
-	msg "Enter password for CADC user ${CADC_USER}"
-	cadc-get-cert --quiet --days-valid=${days} --user=${CADC_USER} && return 0
-    fi
+    [[ -n ${VERBOSE} ]] && msg "prompting user for CADC password"
+    msg "Enter password for CADC user ${CADC_USER}"
+    cadc-get-cert --quiet --days-valid=${days} --user=${CADC_USER} && return 0
     [[ -n ${VERBOSE} ]] && msg "could not get any valid credentials"
     return 1
 }
@@ -105,25 +103,25 @@ done
 
 valid=no
 
-if [[ -e ${PWD}/cadcproxy.pem ]] && [[ ${valid} == no ]]; then
-    [[ -n ${VERBOSE} ]] && msg "checking cert ${PWD}/cadcproxy.pem"
-    cadc_check_cert ${PWD}/cadcproxy.pem && valid=yes && CADC_CERT_PATH=${PWD}/cadcproxy.pem
-elif [[ ${valid} == no ]]; then
-    [[ -n ${VERBOSE} ]] && msg "did not find existing cert at ${PWD}/cadcproxy.pem "
-fi
+local_cert="${PWD}/cadcproxy.pem"
 
-if [[ -e ${CADC_CERT_DEFAULT_PATH} ]] && [[ ${valid} == no ]]; then
+if [[ -e ${local_cert} ]]; then
+    [[ -n ${VERBOSE} ]] && msg "checking cert ${local_cert}"
+    if cadc_check_cert ${local_cert} ; then
+	# hack to copy to default location for vos
+	mkdir -p $(dirname ${CADC_CERT_DEFAULT_PATH})
+	cp ${local_cert} ${CADC_CERT_DEFAULT_PATH}
+	valid=yes
+    else
+	msg "no valid cert at ${local_cert}"
+    fi
+elif [[ -e ${CADC_CERT_DEFAULT_PATH} ]]; then
     [[ -n ${VERBOSE} ]] && msg "checking cert ${CADC_CERT_DEFAULT_PATH}"
     cadc_check_cert ${CADC_CERT_DEFAULT_PATH} && valid=yes
-elif [[ ${valid} == no ]]; then
-    [[ -n ${VERBOSE} ]] && msg "did not find existing default cert at ${CADC_CERT_DEFAULT_PATH}"
+else
+    [[ -n ${VERBOSE} ]] && msg "no valid cert found, prompting"
     cadc_get_cert ${CADC_CERT_MAX_VALID} && valid=yes
 fi
 
-[[ ${valid} == no ]] && die "could not get a CADC cert for user ${CADC_USER}"
+cadc_check_cert ${CADC_CERT_DEFAULT_PATH} || die "could not get a CADC valid cert for user ${CADC_USER}"
 
-# hack to copy to default location for vos
-if [[ -e ${CADC_CERT_PATH} ]]; then
-    mkdir -p $(dirname ${CADC_CERT_DEFAULT_PATH})
-    cp ${CADC_CERT_PATH} ${CADC_CERT_DEFAULT_PATH}
-fi
