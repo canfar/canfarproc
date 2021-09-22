@@ -1,4 +1,4 @@
 [batch-servers]
 #batch-dev.canfar.net new_hostname=batch-dev.canfar.net
-206-12-94-201.cloud.computecanada.ca new_hostname=206-12-94-201.cloud.computecanada.ca
-
+#206-12-94-201.cloud.computecanada.ca new_hostname=206-12-94-201.cloud.computecanada.ca
+206-12-99-34.cloud.computecanada.ca new_hostname=206-12-99-34.cloud.computecanada.ca
