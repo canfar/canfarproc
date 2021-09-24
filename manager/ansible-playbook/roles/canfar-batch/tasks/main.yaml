@@ -5,9 +5,9 @@
 
 
 
-#- name: Set a hostname
-#  hostname:
-#    name: "{{ new_hostname }}"
+- name: Set a hostname
+  hostname:
+    name: "{{ new_hostname }}"
 
 
 - name: Disable SElinux
