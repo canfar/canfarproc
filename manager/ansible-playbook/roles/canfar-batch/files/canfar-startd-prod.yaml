@@ -86,7 +86,6 @@ write_files:
         USER_JOB_WRAPPER = /usr/libexec/condor/jobwrapper.sh
         MEMORY = $(DETECTED_MEMORY)*1.2
         EXECUTE = /var/lib/condor/execute
-        #EXECUTE = /home/rocky
         CONTINUE = True
         PREEMPT = ifThenElse((CurrentTime - JobStart) > 172800, True, False)
         KILL = $(ActivityTimer) > 7200
