@@ -6,9 +6,9 @@
 #*******************************************************#
 #Prepare base system
 
-#- name: Set a hostname
-#  hostname:
-#    name: "{{ new_hostname }}"
+- name: Set a hostname
+  hostname:
+    name: "{{ new_hostname }}"
 
 
 - name: Disable SElinux
@@ -136,3 +136,13 @@
     dest: /usr/bin/cloudscheduler
     state: link
 
+
+#*******************************************************#
+#Copy CANFAR support scripts
+
+- name: Copy CANFAR support scripts
+  copy:
+    src: "files/bin/"
+    dest: /usr/bin/
+    owner: root
+    mode: 644
