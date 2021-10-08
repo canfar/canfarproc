@@ -3,11 +3,12 @@
 
 - include_vars: batch_vars.yaml
 
+#*******************************************************#
+#Prepare base system
 
-
-- name: Set a hostname
-  hostname:
-    name: "{{ new_hostname }}"
+#- name: Set a hostname
+#  hostname:
+#    name: "{{ new_hostname }}"
 
 
 - name: Disable SElinux
@@ -19,7 +20,6 @@
   yum:
     name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
     state: present
-
 
 
 - name: Import htcondor repo key
@@ -35,7 +35,6 @@
     mode: '0644'
 
 
-
 - name: Install packages
   yum:
     name:
@@ -47,6 +46,7 @@
       - python-pip
       - condor-all
     state: present
+
 
 - name: install the package, force upgrade
   pip:
@@ -62,10 +62,9 @@
       - cadcutils==1.1.24
     executable: pip3
 
-      #- python-keystoneclient
-      #- python-novaclient
-      #- python-glanceclient
 
+#*******************************************************#
+#Configure HTCondor
 
 - name: Stop condor if its running
   service:
@@ -73,19 +72,12 @@
     state: stopped
 
 
-
-#Copy over condor config files...
 - name: Copy condor config files
   copy:
     src: "files/etc/condor/"
     dest: /etc/condor/
     owner: root
     mode: 644
-
-
-
-
-#Copy over other system files
 
 
 - name: Start condor
@@ -95,6 +87,8 @@
     state: started
 
 
+#*******************************************************#
+#Install csv2 condor poller
 
 - name: Disable condor poller
   command: /opt/cloudscheduler/utilities/service_disable_condor_poller
@@ -107,14 +101,38 @@
     dest: /tmp/condor_poller.tar.gz
     mode: '0640'
 
+
 - name: Extract condor poller
   command: tar -xzvf /tmp/condor_poller.tar.gz --directory /opt
   ignore_errors: yes
-
 
 
 - name: Enable condor poller
   command: /opt/cloudscheduler/utilities/service_enable_condor_poller
   ignore_errors: yes
 
+
+#*******************************************************#
+#Install cloudscheduler cli
+
+- name: Create git directory
+  ansible.builtin.file:
+    path: /opt/git
+    state: directory
+    mode: '0755'
+
+
+- name: Clone cloudscheduler repo
+  ansible.builtin.git:
+    repo: https://github.com/hep-gc/cloudscheduler.git
+    dest: /opt/git/cloudscheduler
+    single_branch: yes
+    version: dev
+
+
+- name: Make a soft link to the cloudscheduler executable
+  file:
+    src: "/opt/git/cloudscheduler/cli/bin/cloudscheduler"
+    dest: /usr/bin/cloudscheduler
+    state: link
 
