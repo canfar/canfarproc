@@ -8,7 +8,7 @@
 
 GROUP_NAME=canfar
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.3.4
+EXEC_VERSION=0.4.0
 
 msg() {
     echo -e " >> ${EXEC_NAME}: $1"
@@ -124,8 +124,8 @@ JOB_SCRIPT="$(grep -i '^[^#]*Executable\s*=' ${JOB_FILE} | cut -d= -f2 | awk '{p
 #VM_IMAGE_AND_FLAVOR_IDS=$(canfar_translate_vm ${VM_IMAGE} ${VM_FLAVOR} 2>&1) \
 #    || die "canfar_translate_vm failed with the error below\n >> canfar_translate_vm ${VM_IMAGE_AND_FLAVOR_IDS}"
 
+#https://htcondor.readthedocs.io/en/latest/misc-concepts/hooks.html
 cloudscheduler image transfer -tc arbutus-canfar -in ${VM_IMAGE}
-
 
 
 #-------------------------------------------
@@ -142,7 +142,7 @@ jobfile="/var/cache/canfar/condor/canfar_submit_${USER}_$$.jdl"
 
 if [ grep -Fxq 'Requirements = group_name =?= "${GROUP_NAME}" && Arch == "x86_64"' ${JOB_FILE} ] || [ grep -Fxq 'Universe   = vanilla' ${JOB_FILE} ]
 then
-    echo "Requirements or Universe string already exists. Not modifying submit file."
+    die  "Requirements or Universe string already exists. Not modifying submit file. Submit failed."
 else
     echo -e 'Universe   = vanilla\nRequirements = group_name =?= "${GROUP_NAME}" && Arch == "x86_64"\n$(cat ${JOB_FILE})' > ${jobfile}
 fi
