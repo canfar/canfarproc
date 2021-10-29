@@ -1,0 +1,20 @@
+
+- include_vars: batch_vars.yaml
+
+#*******************************************************#
+#Copy CANFAR support scripts
+
+- name: Copy canfar_submit script
+  copy:
+    src: "files/bin/canfar_submit"
+    dest: /usr/bin/canfar_submit
+    owner: root
+    mode: '0755'
+
+- name: Copy canfar_create_batch_user script
+  copy:
+    src: "files/bin/canfar_create_batch_user"
+    dest: /usr/bin/canfar_create_batch_user
+    owner: root
+    mode: '0700'
+
