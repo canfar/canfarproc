@@ -1,4 +1,4 @@
 
 ---
-#- include: base.yaml
+- include: base.yaml
 - include: scripts.yaml

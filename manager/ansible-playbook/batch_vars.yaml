@@ -1,3 +1,3 @@
-condor_ip=206.12.99.34
-condor_fqdn=condor.canfar.net
-condor_short=condor
+condor_ip: 206.12.99.34
+condor_fqdn: condor.canfar.net
+condor_short: condor

@@ -9,9 +9,9 @@
   hostname:
     name: "{{ condor_fqdn }}"
 
-- name: Copy canfar_submit script
-  copy:
-    src: "templates/etc/hosts"
+- name: Write /ets/hosts file
+  template:
+    src: "templates/etc/hosts.j2"
     dest: /etc/hosts
     owner: root
     mode: '0644'
