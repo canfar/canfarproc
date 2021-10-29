@@ -7,6 +7,7 @@
 # submit jobs directly on the head node for testing purposes.
 
 GROUP_NAME=canfar
+TARGET_CLOUD=arbutus-canfar
 EXEC_NAME=$(basename $0 .${0##*.})
 EXEC_VERSION=0.4.0
 
@@ -24,12 +25,11 @@ die() {
 }
 
 usage() {
-    echo $"Usage: ${EXEC_NAME} [OPTION] JOB_FILE VM_IMAGE VM_FLAVOR
+    echo $"Usage: ${EXEC_NAME} [OPTION] JOB_FILE VM_IMAGE
 Submit a CANFAR batch job
 
   JOB_FILE       HTCondor job submission file
   VM_IMAGE       OpenStack VM image name
-  VM_FLAVOR      OpenStack VM resource flavor used to process jobs
 
   -c, --cert=<path>         specify path for proxy to access VOSpace (default: ${HOME}/.ssl/cadcproxy.pem)
   -u, --user=<username>     specify user to run the jobs on the VM (default: automatically detected)
@@ -70,33 +70,28 @@ while true; do
     shift
 done
 
-[[ $# -eq 3 ]] || usage
+[[ $# -eq 2 ]] || usage
 
 [[ -z ${CERT_USER} ]] && [[ ! -e ${HOME}/.ssl/cadcproxy.pem ]] && \
     warn "you are submitting jobs without a VOSPace access certificate"
 
 JOB_FILE=$1
 VM_IMAGE=$2
-VM_FLAVOR=$3
 
 if [ -z "$VM_IMAGE" ]
 then
-      echo "\$var is empty"
+    echo "\$var is empty"
 
-      if grep -Fxq "+VM_IMAGE" ${JOB_FILE}
-        then
-            # code if found
-        else
-            # code if not found
-        fi
+    if grep -Fxq "+VM_IMAGE" ${JOB_FILE}
+    then
+        echo 'found'
+    else
+        echo 'not found'
+    fi
 else
       echo "\$var is NOT empty"
 fi
 
-# SF 05/2019: use dynamic local LAN IP of the batch host VM.
-#CM_IP="--cmip=$(hostname -I)"
-# SF 10/2019: had to hardcode the IP because we switched to 2 networks and the batch VM network is not visible anymore
-CM_IP="--cmip=10.21.0.26"
 
 [[ -e ${JOB_FILE} ]] || die "HTCondor job submission file '${JOB_FILE}' does not exist"
 
@@ -112,48 +107,25 @@ JOB_SCRIPT="$(grep -i '^[^#]*Executable\s*=' ${JOB_FILE} | cut -d= -f2 | awk '{p
 [[ -e ${JOB_SCRIPT} ]] \
     || die "executable '${JOB_SCRIPT}' extracted from ${JOB_FILE} does not exist on batch"
 
-#Ensure user has authorized access to their op project via sourcing rc file
-#if [[ -z ${OS_AUTH_URL} ]] || [[ -z ${OS_PROJECT_ID} ]] || [[ -z ${OS_PROJECT_NAME} ]] || \
-#       [[ -z ${OS_USERNAME} ]] || [[ -z ${OS_PASSWORD} ]]; then
-#    rcfiles=$(ls -1 ~/*-openrc.sh)
-#    die "OpenStack environment variables not set\n Try sourcing either:\n${rcfiles}"
-#fi
-#-------------------------------------------
-# Share the image and translate image and flavor names to their IDs, which is what canfar_job_validate expects.
-#[[ -n ${VERBOSE} ]] && msg "running canfar_translate_vm ${VM_IMAGE} ${VM_FLAVOR}"
-#VM_IMAGE_AND_FLAVOR_IDS=$(canfar_translate_vm ${VM_IMAGE} ${VM_FLAVOR} 2>&1) \
-#    || die "canfar_translate_vm failed with the error below\n >> canfar_translate_vm ${VM_IMAGE_AND_FLAVOR_IDS}"
 
 #https://htcondor.readthedocs.io/en/latest/misc-concepts/hooks.html
-cloudscheduler image transfer -tc arbutus-canfar -in ${VM_IMAGE}
+cloudscheduler image transfer -tc ${TARGET_CLOUD} -in ${VM_IMAGE}
 
 
 #-------------------------------------------
-
-# big string for the job
-#[[ -n ${VERBOSE} ]] && msg "running canfar_job_validate ${CM_IP} ${CERT_USER} ${JOB_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS}"
 
 
 # canfar_job_validate modifies user subission file to create condor jdl submission file
-jobfile="/var/cache/canfar/condor/canfar_submit_${USER}_$$.jdl"
-#error=$((canfar_job_validate ${CM_IP} ${CERT_USER} ${JOB_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS} > ${jobfile}) 2>&1) \
-#    || die "submission failed with the error below\n >> canfar_job_validate ${error}"
+jobfile="/tmp/canfar_submit_${USER}_$$.jdl"
 
-
-if [ grep -Fxq 'Requirements = group_name =?= "${GROUP_NAME}" && Arch == "x86_64"' ${JOB_FILE} ] || [ grep -Fxq 'Universe   = vanilla' ${JOB_FILE} ]
+if grep -Fxq 'Requirements' ${JOB_FILE} || grep -Fxq 'Universe' ${JOB_FILE}
 then
     die  "Requirements or Universe string already exists. Not modifying submit file. Submit failed."
 else
-    echo -e 'Universe   = vanilla\nRequirements = group_name =?= "${GROUP_NAME}" && Arch == "x86_64"\n$(cat ${JOB_FILE})' > ${jobfile}
+    echo -e "Universe = vanilla\nRequirements = group_name =?= \"${GROUP_NAME}\" && Arch == \"x86_64\"\n$(cat ${JOB_FILE})" > ${jobfile}
 fi
 
 
-#JOB=$(canfar_job_validate ${CM_IP} ${CERT_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS} 2>&1) \
-#    || die "submission failed with the error below\n >> canfar_job_validate ${JOB}"
-#echo "${JOB}" | condor_submit || die "failed to submit job(s) to queue. Failed job below\n${JOB}"
-
-# Injects user certs into vm (this is not often used... maybe not needed by most users.)
-#cadc_cert ${VERBOSE} ${CERT}
 
 # Submit modified jdl file to condor
 if [[ -n ${VERBOSE} ]]; then
@@ -161,10 +133,10 @@ if [[ -n ${VERBOSE} ]]; then
     tmp_condor_out="/tmp/condor_submit_$$.jdl"
     condor_submit ${jobfile} > ${tmp_condor_out} || die "failed to submit job(s) to queue. Failed job in ${jobfile}"
     msg "successfully submitted $(awk '/submitted/ {print $1}' ${tmp_condor_out}) job(s) with file: ${jobfile}"
-    mv ${jobfile} /var/cache/canfar/condor/canfar_submit_${USER}_$(awk '/submitted/ {print $6}' ${tmp_condor_out})jdl
-    cat ${tmp_condor_out}
-    rm ${tmp_condor_out}
+    #mv ${jobfile} /var/cache/canfar/condor/canfar_submit_${USER}_$(awk '/submitted/ {print $6}' ${tmp_condor_out})jdl
+    #cat ${tmp_condor_out}
+    #rm ${tmp_condor_out}
 else
     condor_submit ${jobfile} || die "failed to submit job(s) to queue. Failed job in ${jobfile}"
-    rm -f ${jobfile}
+    #rm -f ${jobfile}
 fi
