@@ -11,10 +11,3 @@
     owner: root
     mode: '0755'
 
-- name: Copy canfar_create_batch_user script
-  copy:
-    src: "files/bin/canfar_create_batch_user"
-    dest: /usr/bin/canfar_create_batch_user
-    owner: root
-    mode: '0700'
-

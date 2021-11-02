@@ -28,11 +28,9 @@ usage() {
     echo $"Usage: ${EXEC_NAME} [OPTION] JOB_FILE VM_IMAGE
 Submit a CANFAR batch job
 
-  JOB_FILE       HTCondor job submission file
-  VM_IMAGE       OpenStack VM image name
+  JOB_FILE       HTCondor job submission file (required)
+  VM_IMAGE       OpenStack VM image name (optional, can be in submit file instead)
 
-  -c, --cert=<path>         specify path for proxy to access VOSpace (default: ${HOME}/.ssl/cadcproxy.pem)
-  -u, --user=<username>     specify user to run the jobs on the VM (default: automatically detected)
   -h, --help                display help and exit
   -V, --version             output version information and exit
   -v, --verbose             verbose mode for debugging
@@ -45,8 +43,6 @@ VERBOSE=
 # Store all options
 OPTS=$(getopt \
     -o c:u:hVv \
-    -l cert: \
-    -l user: \
     -l help \
     -l version \
     -l verbose \
@@ -54,13 +50,9 @@ OPTS=$(getopt \
 
 eval set -- "${OPTS}"
 
-JOB_USER=
-CERT_USER=
 
 while true; do
     case "$1" in
-	-c | --cert) CERT_USER="--cert=${2##=}"; shift ;;
-	-u | --user) JOB_USER="--submitter=${2##=}"; shift ;;	
 	-h | --help) usage ;;
 	-V | --version) echo ${EXEC_VERSION}; exit ;;
 	-v | --verbose) VERBOSE="--verbose" ;;
@@ -70,30 +62,44 @@ while true; do
     shift
 done
 
-[[ $# -eq 2 ]] || usage
-
-[[ -z ${CERT_USER} ]] && [[ ! -e ${HOME}/.ssl/cadcproxy.pem ]] && \
-    warn "you are submitting jobs without a VOSPace access certificate"
+if [[ $# > 2 || $# == 0 ]];
+then 
+    usage
+fi
 
 JOB_FILE=$1
 VM_IMAGE=$2
 
-if [ -z "$VM_IMAGE" ]
-then
-    echo "\$var is empty"
 
-    if grep -Fxq "+VM_IMAGE" ${JOB_FILE}
+[[ -e ${JOB_FILE} ]] || die "HTCondor job submission file '${JOB_FILE}' does not exist"
+
+
+
+if grep '+VMImage' ${JOB_FILE}
+then
+    if [ -z "$VM_IMAGE" ]
     then
-        echo 'found'
-    else
-        echo 'not found'
+        echo "VM_IMAGE cli paramenter not given. Using value from submit file."
+        #set VM_IMAGE to value in file
+        VM_IMAGE=$(grep "+VMImage" ${JOB_FILE} | cut -d "=" -f2 | xargs)
     fi
 else
-      echo "\$var is NOT empty"
+    echo '+VMimage not found in submit file. Syntax: [+VMImage=...]'
+
+    NAME_FLAG=0
+    if [ -z "$VM_IMAGE" ]
+    then
+        die "VM_IMAGE cli paramenter not given. A VM image name is required to proceed. Submit failed"
+    else
+        echo "Using VM_IMAGE value."
+        NAME_FLAG=1
+    fi
 fi
 
 
-[[ -e ${JOB_FILE} ]] || die "HTCondor job submission file '${JOB_FILE}' does not exist"
+#https://htcondor.readthedocs.io/en/latest/misc-concepts/hooks.html
+cloudscheduler image transfer -tc ${TARGET_CLOUD} -in ${VM_IMAGE}
+
 
 #-------------------------------------------
 #Validate *.sub file...
@@ -108,8 +114,7 @@ JOB_SCRIPT="$(grep -i '^[^#]*Executable\s*=' ${JOB_FILE} | cut -d= -f2 | awk '{p
     || die "executable '${JOB_SCRIPT}' extracted from ${JOB_FILE} does not exist on batch"
 
 
-#https://htcondor.readthedocs.io/en/latest/misc-concepts/hooks.html
-cloudscheduler image transfer -tc ${TARGET_CLOUD} -in ${VM_IMAGE}
+
 
 
 #-------------------------------------------
@@ -122,7 +127,12 @@ if grep -Fxq 'Requirements' ${JOB_FILE} || grep -Fxq 'Universe' ${JOB_FILE}
 then
     die  "Requirements or Universe string already exists. Not modifying submit file. Submit failed."
 else
-    echo -e "Universe = vanilla\nRequirements = group_name =?= \"${GROUP_NAME}\" && Arch == \"x86_64\"\n$(cat ${JOB_FILE})" > ${jobfile}
+    if [[ ${NAME_FLAG} -eq 1 ]]
+    then
+        echo -e "Universe = vanilla\nRequirements = group_name =?= \"${GROUP_NAME}\" && Arch == \"x86_64\"\n+VMImage=\"${VM_IMAGE}\"\n$(cat ${JOB_FILE})" > ${jobfile}
+    else
+        echo -e "Universe = vanilla\nRequirements = group_name =?= \"${GROUP_NAME}\" && Arch == \"x86_64\"\n$(cat ${JOB_FILE})" > ${jobfile}
+    fi
 fi
 
 
@@ -133,9 +143,7 @@ if [[ -n ${VERBOSE} ]]; then
     tmp_condor_out="/tmp/condor_submit_$$.jdl"
     condor_submit ${jobfile} > ${tmp_condor_out} || die "failed to submit job(s) to queue. Failed job in ${jobfile}"
     msg "successfully submitted $(awk '/submitted/ {print $1}' ${tmp_condor_out}) job(s) with file: ${jobfile}"
-    #mv ${jobfile} /var/cache/canfar/condor/canfar_submit_${USER}_$(awk '/submitted/ {print $6}' ${tmp_condor_out})jdl
-    #cat ${tmp_condor_out}
-    #rm ${tmp_condor_out}
+    rm ${tmp_condor_out}
 else
     condor_submit ${jobfile} || die "failed to submit job(s) to queue. Failed job in ${jobfile}"
     #rm -f ${jobfile}
