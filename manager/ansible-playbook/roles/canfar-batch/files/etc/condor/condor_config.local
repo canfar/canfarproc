@@ -1,5 +1,6 @@
 ##  What machine is your central manager?
 CONDOR_HOST = $(FULL_HOSTNAME)
+NETWORK_INTERFACE = 206.12.99.34 
 
 ## Pool's short description
 COLLECTOR_NAME = CANFAR Production Pool

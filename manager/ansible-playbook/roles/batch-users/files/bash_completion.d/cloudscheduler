@@ -1,0 +1,366 @@
+# a9770b82159eb54fd3822b4c43ef2f42
+_cloudscheduler()
+{
+    local cur prev first second objects actions options
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    first="${COMP_WORDS[1]}"
+    second="${COMP_WORDS[2]}"
+
+    #
+    # Complete the following objects:
+    #
+    objects="accounting alias cloud defaults ec2 group helpers image job metadata my server user vm"
+    #
+    # Complete args and file paths
+    #
+    case "${prev}" in        -bk|--backup-key)
+            COMPREPLY=( $(compgen -f -- ${cur}) )
+            return 0
+            ;;        -br|--backup-repository)
+            COMPREPLY=( $(compgen -f -- ${cur}) )
+            return 0
+            ;;        -cc|--config-category)
+            COMPREPLY=( $(compgen -W "condor_poller.py openstackPoller.py web_frontend" -- ${cur}) )
+            return 0
+            ;;        -ce|--cloud-enabled)
+            COMPREPLY=( $(compgen -W "true false yes no 1 0" -- ${cur}) )
+            return 0
+            ;;        -ct|--cloud-type)
+            COMPREPLY=( $(compgen -W "amazon azure google local opennebula openstack" -- ${cur}) )
+            return 0
+            ;;        -eg|--enable-glint)
+            COMPREPLY=( $(compgen -W "True False" -- ${cur}) )
+            return 0
+            ;;        -f|--file-path)
+            COMPREPLY=( $(compgen -f -- ${cur}) )
+            return 0
+            ;;        -gmo|--group-metadata-option)
+            COMPREPLY=( $(compgen -W "add delete" -- ${cur}) )
+            return 0
+            ;;        -go|--group-option)
+            COMPREPLY=( $(compgen -W "add delete" -- ${cur}) )
+            return 0
+            ;;        -jh|--job-hold)
+            COMPREPLY=( $(compgen -W "1 0" -- ${cur}) )
+            return 0
+            ;;        -jS|--job-status)
+            COMPREPLY=( $(compgen -W "1 2 3 4 5" -- ${cur}) )
+            return 0
+            ;;        -me|--metadata-enabled)
+            COMPREPLY=( $(compgen -W "true false yes no 1 0" -- ${cur}) )
+            return 0
+            ;;        -mmt|--metadata-mime-type)
+            COMPREPLY=( $(compgen -W "cloud-config ucernvm-config" -- ${cur}) )
+            return 0
+            ;;        -SU|--super-user)
+            COMPREPLY=( $(compgen -W "yes no true false 1 0" -- ${cur}) )
+            return 0
+            ;;        -uo|--user-option)
+            COMPREPLY=( $(compgen -W "add delete" -- ${cur}) )
+            return 0
+            ;;        -vF|--vm-foreign)
+            COMPREPLY=( $(compgen -W "1 0" -- ${cur}) )
+            return 0
+            ;;        -vo|--vm-option)
+            COMPREPLY=( $(compgen -W "kill retire manctl sysctl" -- ${cur}) )
+            return 0
+            ;;        -vS|--vm-status)
+            COMPREPLY=( $(compgen -W "foreign native manual error unregistered retiring running other" -- ${cur}) )
+            return 0
+            ;;        *)
+            ;;
+    esac
+
+    #
+    # For each object, complete the following actions:
+    #
+    case "${first}:${second}" in        accounting:apel)
+            options="--all --comma-separated-values --comma-separated-values-separator --group --long-help --help --last-update --no-view --only-keys --rotate --server --version --view --view-columns --with --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        accounting:*)
+            actions="apel --long-help --help --version"
+            COMPREPLY=( $(compgen -W "${actions}" -- ${cur}) )
+            return 0
+            ;;        alias:add)
+            options="--alias-name --cloud-name --group --long-help --help --server --version --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        alias:list)
+            options="--comma-separated-values --comma-separated-values-separator --group --long-help --help --no-view --only-keys --rotate --server --version --view --view-columns --with --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        alias:update)
+            options="--alias-name --cloud-name --cloud-option --group --long-help --help --server --version --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        alias:*)
+            actions="add list update --long-help --help --version"
+            COMPREPLY=( $(compgen -W "${actions}" -- ${cur}) )
+            return 0
+            ;;        cloud:add)
+            options="--cloud-address --cloud-enabled --cloud-flavor-exclusion --cloud-name --cloud-password --cloud-priority --cloud-project --cloud-project-domain --cloud-project-domain-id --cloud-region --cloud-spot-price --cloud-type --cloud-user-domain --cloud-user-domain-id --cloud-user --group --group-metadata-exclusion --long-help --help --server --version --vm-boot-volume --vm-cores --vm-cores-softmax --vm-flavor --vm-image --vm-keyname --vm-keep-alive --vm-network --vm-ram --vm-security-groups --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        cloud:delete)
+            options="--cloud-name --group --long-help --help --server --version --use-x509-authentication --expose-API --yes"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        cloud:list)
+            options="--cloud-name --comma-separated-values --comma-separated-values-separator --group --long-help --help --no-view --only-keys --rotate --server --version --view --view-columns --with --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        cloud:metadata-collation)
+            options="--cloud-name --comma-separated-values --comma-separated-values-separator --group --long-help --help --no-view --only-keys --rotate --server --version --view --view-columns --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        cloud:metadata-delete)
+            options="--cloud-name --group --long-help --help --metadata-name --server --version --use-x509-authentication --expose-API --yes"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        cloud:metadata-edit)
+            options="--cloud-name --group --long-help --help --metadata-name --server --text-editor --version --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        cloud:metadata-list)
+            options="--cloud-name --comma-separated-values --comma-separated-values-separator --group --long-help --help --metadata-name --no-view --only-keys --rotate --server --version --view --view-columns --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        cloud:metadata-load)
+            options="--cloud-name --file-path --force --group --long-help --help --metadata-enabled --metadata-mime-type --metadata-name --metadata-priority --server --version --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        cloud:metadata-save)
+            options="--cloud-name --file-path --force --group --long-help --help --metadata-name --server --version --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        cloud:metadata-update)
+            options="--cloud-name --group --long-help --help --metadata-enabled --metadata-mime-type --metadata-name --metadata-priority --server --version --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        cloud:status)
+            options="--cloud-name --comma-separated-values --comma-separated-values-separator --group --long-help --help --no-view --only-keys --rotate --server --version --view --view-columns --with --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        cloud:update)
+            options="--cloud-address --cloud-enabled --cloud-flavor-exclusion --cloud-flavor-option --cloud-name --cloud-password --cloud-priority --cloud-project --cloud-project-domain --cloud-project-domain-id --cloud-region --cloud-spot-price --cloud-type --cloud-user-domain --cloud-user-domain-id --cloud-user --group --group-metadata-exclusion --group-metadata-option --long-help --help --server --version --vm-boot-volume --vm-cores --vm-cores-softmax --vm-flavor --vm-image --vm-keyname --vm-keep-alive --vm-network --vm-ram --vm-security-groups --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        cloud:*)
+            actions="add delete list metadata-collation metadata-delete metadata-edit metadata-list metadata-load metadata-save metadata-update status update --long-help --help --version"
+            COMPREPLY=( $(compgen -W "${actions}" -- ${cur}) )
+            return 0
+            ;;        defaults:delete)
+            options="--long-help --help --server --version --yes"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        defaults:list)
+            options="--comma-separated-values --comma-separated-values-separator --long-help --help --no-view --only-keys --rotate --server --version --view --view-columns --with"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        defaults:set)
+            options="--all --alias-name --backup-key --backup-repository --cacerts --cloud-address --config-category --config-key-values --cloud-enabled --cloud-flavor-exclusion --cloud-flavor-option --cloud-name --cloud-option --cloud-password --cloud-priority --cloud-project --cloud-project-domain --cloud-project-domain-id --cloud-region --comma-separated-values --comma-separated-values-separator --cloud-spot-price --cloud-type --cloud-user-domain --cloud-user-domain-id --cloud-user --default-server --file-path --force --group --group-metadata-exclusion --group-metadata-option --group-name --group-option --long-help --help --htcondor-fqdn --htcondor-container-hostname --htcondor-users --ec2-image-architectures --ec2-image-like --ec2-image-not-like --ec2-image-owner-aliases --ec2-image-owner-ids --ec2-image-operating-systems --ec2-instance-type-cores --ec2-instance-type-families --ec2-instance-type-memory-min-gigabytes-per-core --ec2-instance-type-memory-max-gigabytes-per-core --ec2-instance-type-operating-systems --ec2-instance-type-processors --ec2-instance-type-processor-manufacturers --job-cores --job-disk --job-hold --job-id --job-image --job-priority --job-requirements --job-ram --job-request-cpus --job-request-disk --job-request-ram --job-request-swap --job-status --job-swap --job-target-alias --job-user --last-update --metadata-enabled --metadata-mime-type --metadata-name --metadata-priority --no-limit-default --no-view --only-keys --rotate --server --server-address --server-password --show-foreign-vms --show-global-status --show-jobs-by-target-alias --status-refresh-interval --show-slot-detail --show-slot-flavors --super-user --server-user --text-editor --user-common-name --username --user-option --user-password --version --view --vm-boot-volume --view-columns --vm-cores --vm-cores-softmax --vm-disk --vm-foreign --vm-flavor --vm-image --vm-hosts --vm-keyname --vm-keep-alive --vm-network --vm-option --vm-ram --vm-status --vm-swap --vm-security-groups --with --use-x509-authentication --expose-API --yes --image-name --image-checksum --target-cloud --target-group --image-path --cloud-list --image-format --image-date --image-index --disk-format"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        defaults:*)
+            actions="delete list set --long-help --help --version"
+            COMPREPLY=( $(compgen -W "${actions}" -- ${cur}) )
+            return 0
+            ;;        ec2:images)
+            options="--cloud-name --comma-separated-values --comma-separated-values-separator --group --long-help --help --ec2-image-architectures --ec2-image-like --ec2-image-not-like --ec2-image-owner-aliases --ec2-image-owner-ids --ec2-image-operating-systems --no-view --only-keys --rotate --server --version --view --view-columns --with --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        ec2:instance-types)
+            options="--cloud-name --comma-separated-values --comma-separated-values-separator --group --long-help --help --ec2-instance-type-cores --ec2-instance-type-families --ec2-instance-type-memory-min-gigabytes-per-core --ec2-instance-type-memory-max-gigabytes-per-core --ec2-instance-type-operating-systems --ec2-instance-type-processors --ec2-instance-type-processor-manufacturers --no-view --only-keys --rotate --server --version --view --view-columns --with --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        ec2:*)
+            actions="images instance-types --long-help --help --version"
+            COMPREPLY=( $(compgen -W "${actions}" -- ${cur}) )
+            return 0
+            ;;        group:add)
+            options="--group --group-name --long-help --help --htcondor-fqdn --htcondor-container-hostname --htcondor-users --job-cores --job-disk --job-ram --job-swap --no-view --only-keys --rotate --server --username --version --vm-flavor --vm-image --vm-keyname --vm-keep-alive --vm-network --vm-security-groups --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        group:defaults)
+            options="--comma-separated-values --comma-separated-values-separator --group --long-help --help --htcondor-fqdn --htcondor-container-hostname --htcondor-users --job-cores --job-disk --job-ram --job-swap --no-view --only-keys --rotate --server --version --view --view-columns --vm-flavor --vm-image --vm-keyname --vm-keep-alive --vm-network --vm-security-groups --with --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        group:delete)
+            options="--group-name --long-help --help --server --version --use-x509-authentication --expose-API --yes"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        group:list)
+            options="--comma-separated-values --comma-separated-values-separator --group --group-name --long-help --help --no-view --only-keys --rotate --server --version --view --view-columns --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        group:metadata-delete)
+            options="--group --long-help --help --metadata-name --server --version --use-x509-authentication --expose-API --yes"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        group:metadata-edit)
+            options="--group --long-help --help --metadata-name --server --text-editor --version --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        group:metadata-list)
+            options="--comma-separated-values --comma-separated-values-separator --group --long-help --help --metadata-name --no-view --only-keys --rotate --server --version --view --view-columns --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        group:metadata-load)
+            options="--file-path --force --group --long-help --help --metadata-enabled --metadata-mime-type --metadata-name --metadata-priority --server --version --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        group:metadata-save)
+            options="--file-path --force --group --long-help --help --metadata-name --server --version --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        group:metadata-update)
+            options="--group --long-help --help --metadata-enabled --metadata-mime-type --metadata-name --metadata-priority --server --version --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        group:update)
+            options="--group --group-name --long-help --help --htcondor-fqdn --htcondor-container-hostname --htcondor-users --job-cores --job-disk --job-ram --job-swap --no-view --only-keys --rotate --server --username --user-option --version --vm-flavor --vm-image --vm-keyname --vm-keep-alive --vm-network --vm-security-groups --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        group:*)
+            actions="add defaults delete list metadata-delete metadata-edit metadata-list metadata-load metadata-save metadata-update update --long-help --help --version"
+            COMPREPLY=( $(compgen -W "${actions}" -- ${cur}) )
+            return 0
+            ;;        helpers:check_documentation)
+            options=""
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        helpers:generate_bash_completion_script)
+            options=""
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        helpers:print_json_syntax_tree)
+            options=""
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        helpers:*)
+            actions="check_documentation generate_bash_completion_script print_json_syntax_tree --long-help --help --version"
+            COMPREPLY=( $(compgen -W "${actions}" -- ${cur}) )
+            return 0
+            ;;        image:delete)
+            options="--cloud-name --group --long-help --help --server --version --use-x509-authentication --expose-API --image-name --image-checksum --image-index"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        image:list)
+            options="--cloud-name --comma-separated-values --comma-separated-values-separator --group --long-help --help --no-view --only-keys --rotate --server --version --view --view-columns --with --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        image:transfer)
+            options="--group --long-help --help --server --version --use-x509-authentication --expose-API --image-name --image-checksum --target-cloud --image-index"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        image:upload)
+            options="--group --long-help --help --server --version --use-x509-authentication --expose-API --image-path --cloud-list --disk-format"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        image:*)
+            actions="delete list transfer upload --long-help --help --version"
+            COMPREPLY=( $(compgen -W "${actions}" -- ${cur}) )
+            return 0
+            ;;        job:list)
+            options="--comma-separated-values --comma-separated-values-separator --group --long-help --help --job-hold --job-id --job-image --job-priority --job-requirements --job-request-cpus --job-request-disk --job-request-ram --job-request-swap --job-status --job-target-alias --job-user --no-view --only-keys --rotate --server --version --view --view-columns --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        job:*)
+            actions="list --long-help --help --version"
+            COMPREPLY=( $(compgen -W "${actions}" -- ${cur}) )
+            return 0
+            ;;        metadata:backup)
+            options="--backup-key --backup-repository --version --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        metadata:delete)
+            options="--group --long-help --help --metadata-name --server --version --use-x509-authentication --expose-API --yes"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        metadata:edit)
+            options="--group --long-help --help --metadata-name --server --text-editor --version --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        metadata:group-defaults)
+            options="--comma-separated-values --comma-separated-values-separator --group --long-help --help --htcondor-fqdn --htcondor-container-hostname --htcondor-users --job-cores --job-disk --job-ram --job-swap --no-view --only-keys --rotate --server --version --view --view-columns --vm-flavor --vm-image --vm-keyname --vm-keep-alive --vm-network --vm-security-groups --with --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        metadata:list)
+            options="--comma-separated-values --comma-separated-values-separator --group --long-help --help --metadata-name --no-view --only-keys --rotate --server --version --view --view-columns --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        metadata:load)
+            options="--file-path --force --group --long-help --help --metadata-enabled --metadata-mime-type --metadata-name --metadata-priority --server --version --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        metadata:restore)
+            options="--backup-key --backup-repository --version --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        metadata:update)
+            options="--group --long-help --help --metadata-enabled --metadata-mime-type --metadata-name --metadata-priority --server --version --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        metadata:*)
+            actions="backup delete edit group-defaults list load restore update --long-help --help --version"
+            COMPREPLY=( $(compgen -W "${actions}" -- ${cur}) )
+            return 0
+            ;;        my:settings)
+            options="--comma-separated-values --comma-separated-values-separator --group-name --long-help --help --no-view --only-keys --rotate --server --show-foreign-vms --show-global-status --show-jobs-by-target-alias --status-refresh-interval --show-slot-detail --show-slot-flavors --user-password --version --view --view-columns --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        my:*)
+            actions="settings --long-help --help --version"
+            COMPREPLY=( $(compgen -W "${actions}" -- ${cur}) )
+            return 0
+            ;;        server:config)
+            options="--config-category --config-key-values --comma-separated-values --comma-separated-values-separator --group --long-help --help --no-view --only-keys --rotate --server --version --view --view-columns --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        server:*)
+            actions="config --long-help --help --version"
+            COMPREPLY=( $(compgen -W "${actions}" -- ${cur}) )
+            return 0
+            ;;        user:add)
+            options="--group --group-name --long-help --help --server --super-user --user-common-name --username --user-password --version --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        user:delete)
+            options="--group --long-help --help --server --username --version --use-x509-authentication --expose-API --yes"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        user:list)
+            options="--comma-separated-values --comma-separated-values-separator --group --long-help --help --no-view --only-keys --rotate --server --username --version --view --view-columns --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        user:update)
+            options="--group --group-name --group-option --long-help --help --server --super-user --user-common-name --username --user-password --version --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        user:*)
+            actions="add delete list update --long-help --help --version"
+            COMPREPLY=( $(compgen -W "${actions}" -- ${cur}) )
+            return 0
+            ;;        vm:list)
+            options="--cloud-name --comma-separated-values --comma-separated-values-separator --group --long-help --help --no-view --only-keys --rotate --server --version --view --view-columns --vm-cores --vm-disk --vm-foreign --vm-flavor --vm-hosts --vm-ram --vm-status --vm-swap --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        vm:update)
+            options="--cloud-name --group --long-help --help --server --version --vm-hosts --vm-option --vm-status --use-x509-authentication --expose-API"
+            COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+            return 0
+            ;;        vm:*)
+            actions="list update --long-help --help --version"
+            COMPREPLY=( $(compgen -W "${actions}" -- ${cur}) )
+            return 0
+            ;;        *:*)
+            ;;
+    esac
+
+    COMPREPLY=($(compgen -W "${objects} --long-help --help --version" -- ${cur}))
+    return 0
+}
+complete -o filenames -F _cloudscheduler cloudscheduler

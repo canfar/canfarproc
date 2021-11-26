@@ -1,0 +1,7 @@
+---
+
+- name: Configure Batch Users
+  hosts: batch-servers
+  user: root
+  roles:
+  - batch-users

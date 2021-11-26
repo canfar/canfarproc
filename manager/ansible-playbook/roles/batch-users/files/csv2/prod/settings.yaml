@@ -1,0 +1,16 @@
+all: false
+expose-API: false
+force: false
+help: false
+long-help: false
+no-view: false
+only-keys: false
+rotate: false
+server: prod
+server-address: https://csv2-canfar.heprc.uvic.ca
+server-password: Zzu&Ttrp%/vo=7J5
+server-user: canfarops
+use-x509-authentication: false
+version: false
+view-columns: false
+'yes': false
