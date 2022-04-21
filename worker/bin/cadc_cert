@@ -1,19 +1,19 @@
 #!/bin/bash
 #
-# Shell script to get a proxy cert really hard
+# Shell script to get a CADC proxy cert
 #
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.3.0
+EXEC_VERSION=0.4.0
 
 # Default path for CADC user X509 proxy cert
 CADC_CERT_DEFAULT_PATH="${HOME}/.ssl/cadcproxy.pem"
 
 # min validation in days the cert has to be
-CADC_CERT_MIN_VALID=5
+CADC_CERT_MIN_VALID=1
 
 # max validation in days the cert will be
-CADC_CERT_MAX_VALID=15
+CADC_CERT_MAX_VALID=30
 
 # cadc url to check a valid cert
 CADC_URL="www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca"
@@ -65,15 +65,12 @@ cadc_check_cert() {
     local last_day_valid="$(openssl x509 -in ${cert} -enddate -noout | sed -e 's/notAfter=//')"
     local days_left=$(( ( $(date --date="${last_day_valid}" +%s) - $(date --date="${today}" +%s) ) / 86400 ))
     
-    if [[ -n ${VERBOSE} ]] ; then
-	if [[ ${days_left} -lt ${CADC_CERT_MIN_VALID} ]]; then
-	    msg "left with ${days_left} days"
-	    msg "renewing certificate for ${CADC_CERT_MAX_VALID} days"
-	else
-	    msg "CADC proxy certificate is still valid for ${days_left} days, renewing anyway"
-	fi
+    if [[ ${days_left} -lt ${CADC_CERT_MIN_VALID} ]]; then
+	[[ -n ${VERBOSE} ]] && msg "left with ${days_left} days"
+	return 1
     fi
-    cadc_get_cert ${CADC_CERT_MAX_VALID}
+    [[ -n ${VERBOSE} ]] && msg "CADC proxy certificate is still valid for ${days_left} days"
+    return 0
 }
 
 # Store all options
@@ -106,7 +103,7 @@ valid=no
 local_cert="${PWD}/cadcproxy.pem"
 
 if [[ -e ${local_cert} ]]; then
-    [[ -n ${VERBOSE} ]] && msg "checking cert ${local_cert}"
+    [[ -n ${VERBOSE} ]] && msg "checking local cert ${local_cert}"
     if cadc_check_cert ${local_cert} ; then
 	# hack to copy to default location for vos
 	mkdir -p $(dirname ${CADC_CERT_DEFAULT_PATH})
@@ -116,12 +113,11 @@ if [[ -e ${local_cert} ]]; then
 	msg "no valid cert at ${local_cert}"
     fi
 elif [[ -e ${CADC_CERT_DEFAULT_PATH} ]]; then
-    [[ -n ${VERBOSE} ]] && msg "checking cert ${CADC_CERT_DEFAULT_PATH}"
+    [[ -n ${VERBOSE} ]] && msg "checking default cert ${CADC_CERT_DEFAULT_PATH}"
     cadc_check_cert ${CADC_CERT_DEFAULT_PATH} && valid=yes
-else
-    [[ -n ${VERBOSE} ]] && msg "no valid cert found, prompting"
-    cadc_get_cert ${CADC_CERT_MAX_VALID} && valid=yes
 fi
 
-cadc_check_cert ${CADC_CERT_DEFAULT_PATH} || die "could not get a CADC valid cert for user ${CADC_USER}"
-
+if [[ ${valid} == no ]] ; then
+    [[ -n ${VERBOSE} ]] && msg "no valid cert found, prompting"
+    cadc_get_cert ${CADC_CERT_MAX_VALID} || die "could not get a CADC valid cert for user ${CADC_USER}"
+fi
