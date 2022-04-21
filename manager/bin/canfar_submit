@@ -128,8 +128,9 @@ if [[ -n ${VERBOSE} ]]; then
     msg "running condor_submit ${jobfile}"
     tmp_condor_out="/tmp/condor_submit_$$.jdl"
     condor_submit ${jobfile} > ${tmp_condor_out} || die "failed to submit job(s) to queue. Failed job in ${jobfile}"
-    msg "successfully submitted $(awk '/submitted/ {print $1}' ${tmp_condor_out}) job(s) with file: ${jobfile}"
-    mv ${jobfile} /var/cache/canfar/condor/canfar_submit_${USER}_$(awk '/submitted/ {print $6}' ${tmp_condor_out})jdl
+    final_file=/var/cache/canfar/condor/canfar_submit_${USER}_$(awk '/submitted/ {print $6}' ${tmp_condor_out})jdl
+    mv ${jobfile} ${final_file}
+    msg "successfully submitted $(awk '/submitted/ {print $1}' ${tmp_condor_out}) job(s) with file: ${final_file}"
     cat ${tmp_condor_out}
     rm ${tmp_condor_out}
 else
