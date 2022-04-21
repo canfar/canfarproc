@@ -1,7 +1,7 @@
 #!/bin/bash
 
 EXEC_NAME=$(basename $0 .${0##*.})
-EXEC_VERSION=0.2.3
+EXEC_VERSION=0.2.4
 
 msg() {
     echo -e " >> ${EXEC_NAME}: $1"
@@ -13,9 +13,10 @@ die() {
 }
 
 CADC_URLS=(
-    www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca
-    www.canfar.phys.uvic.ca
+    ws.cadc-ccda.hia-iha.nrc-cnrc.gc.ca
     www.canfar.net
+    ws-cadc.canfar.net
+    ws-uv.canfar.net    
 )
 
 # the file to change is for the user who called the script
