@@ -97,8 +97,8 @@ cadc_dotnetrc_make() {
     done
     chmod 600 ${DOT_NETRC}
     echo
-    if type -P cadc_cert; then
-	msg "trying your ${DOT_NETRC} to grab a valid CADC proxy certificate"
+    if type -P cadc_cert > /dev/null; then
+	msg "testing your ${DOT_NETRC} to grab a valid CADC proxy certificate"
 	cadc_cert -u ${user}
     fi
     msg "${DOT_NETRC} is setup for CADC for user ${user}"
