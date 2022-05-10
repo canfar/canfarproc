@@ -7,7 +7,7 @@
 # submit jobs directly on the head node for testing purposes.
 
 GROUP_NAME=canfar
-TARGET_CLOUD=arbutus-canfar
+TARGET_CLOUD=batch-arbutus
 EXEC_NAME=$(basename $0 .${0##*.})
 EXEC_VERSION=0.4.0
 
