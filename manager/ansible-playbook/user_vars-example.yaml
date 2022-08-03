@@ -1,0 +1,8 @@
+#This is an example user config file. It contains the users name and public key. Make a copy of this file named user_vars.yaml and add your user's info. 
+batch_users:
+
+  - name: user-one
+    pub_key: 'ssh-rsa public key for user-one'
+
+  - name: user-two
+    pub_key: 'ssh-rsa public key for user-two
