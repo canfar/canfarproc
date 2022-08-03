@@ -67,9 +67,11 @@ Now let’s go through these steps in detail:
 `Arguments  = 600 10`
 - These are the command line arguments you would supply to the executable when running in manually in a terminal. Again, this should be tested while preparing the VM image and snapshot.
 
-`Log        = simple1.log
-Output     = simple1.out
-Error      = simple1.log`
+`Log        = simple1.log`
+
+`Output     = simple1.out`
+
+`Error      = simple1.log`
 - These are the names of the log files produces when running the executable. These can output to the same file, or be separate files for each log type.
 
 `Queue`
