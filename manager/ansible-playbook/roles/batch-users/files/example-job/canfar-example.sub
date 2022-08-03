@@ -1,0 +1,29 @@
++VMImage = "canfar-rocky-8"
+
+request_cpus = 1
+request_memory = 1000
+request_disk = 1000
+
+should_transfer_files = yes
+
+Executable = simple
+Arguments  = 600 10
+Log        = simple1.log
+Output     = simple1.out
+Error      = simple1.log
+
+Queue
+
+Arguments  = 600 22
+Log        = simple2.log
+Output     = simple2.out
+Error      = simple2.log
+
+Queue
+
+Arguments  = 600 14
+Log        = simple3.log
+Output     = simple3.out
+Error      = simple3.log
+
+Queue
