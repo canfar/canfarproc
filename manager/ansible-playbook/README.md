@@ -44,7 +44,7 @@ Now let’s go through these steps in detail:
 
 ## Prepare your batch submission file:
 
-- Connect to the batch submission host using your CADC username: ssh username@condor.canfar.net
+- Connect to the batch submission host using your CADC username: `ssh username@condor.canfar.net`
 - In your home directory you will find an example directory with a sample job. As a first test look at the example.sub file and submit a test job using canfar_submit example.sub
 - To prepare a submission file to run your jobs, you can you the example.sub file as a template. Let’s review the required parameters:
 
