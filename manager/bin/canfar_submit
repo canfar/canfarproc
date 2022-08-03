@@ -67,7 +67,7 @@ done
 
 [[ $# -eq 3 ]] || usage
 
-[[ -z ${CERT_USER} ]] && [[ ! -e ${HOME}/.ssl/cadcproxy.pem ]] && \
+[[ -z ${JOB_USER} ]] && [[ ! -e ${HOME}/.ssl/cadcproxy.pem ]] && \
     warn "you are submitting jobs without a VOSPace access certificate"
 
 JOB_FILE=$1
@@ -108,12 +108,12 @@ VM_IMAGE_AND_FLAVOR_IDS=$(canfar_translate_vm ${VM_IMAGE} ${VM_FLAVOR} 2>/dev/nu
 #-------------------------------------------
 
 # big string for the job
-[[ -n ${VERBOSE} ]] && msg "running canfar_job_validate ${CM_IP} ${CERT_USER} ${JOB_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS}"
+[[ -n ${VERBOSE} ]] && msg "running canfar_job_validate ${CM_IP} ${JOB_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS}"
 
 
 # canfar_job_validate modifies user subission file to create condor jdl submission file
 jobfile="/var/cache/canfar/condor/canfar_submit_${USER}_$$.jdl"
-error=$((canfar_job_validate ${CM_IP} ${CERT_USER} ${JOB_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS} > ${jobfile}) 2>&1) \
+error=$((canfar_job_validate ${CM_IP} ${JOB_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS} > ${jobfile}) 2>&1) \
     || die "submission failed with the error below\n >> canfar_job_validate ${error}"
 
 #JOB=$(canfar_job_validate ${CM_IP} ${CERT_USER} ${JOB_FILE} ${JOB_SCRIPT} ${VM_IMAGE_AND_FLAVOR_IDS} 2>&1) \
@@ -128,8 +128,9 @@ if [[ -n ${VERBOSE} ]]; then
     msg "running condor_submit ${jobfile}"
     tmp_condor_out="/tmp/condor_submit_$$.jdl"
     condor_submit ${jobfile} > ${tmp_condor_out} || die "failed to submit job(s) to queue. Failed job in ${jobfile}"
-    msg "successfully submitted $(awk '/submitted/ {print $1}' ${tmp_condor_out}) job(s) with file: ${jobfile}"
-    mv ${jobfile} /var/cache/canfar/condor/canfar_submit_${USER}_$(awk '/submitted/ {print $6}' ${tmp_condor_out})jdl
+    final_file=/var/cache/canfar/condor/canfar_submit_${USER}_$(awk '/submitted/ {print $6}' ${tmp_condor_out})jdl
+    mv ${jobfile} ${final_file}
+    msg "successfully submitted $(awk '/submitted/ {print $1}' ${tmp_condor_out}) job(s) with file: ${final_file}"
     cat ${tmp_condor_out}
     rm ${tmp_condor_out}
 else

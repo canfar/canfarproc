@@ -11,4 +11,4 @@ if [[ -z ${cert} ]] || [[ ! -e ${cert} ]]; then
 fi
 
 mkdir -p ${HOME}/.ssl
-cp ${cert} ~/.ssl/cadcproxy.pem
+cp ${cert} ${HOME}/.ssl/cadcproxy.pem
