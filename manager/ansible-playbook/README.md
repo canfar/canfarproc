@@ -24,21 +24,21 @@ Now let’s go through these steps in detail:
 
 ## VM image preparation
 
-- Login to the CANFAR Arbutus and navigate to the “Instances” section. 
-- Launch a new VM instance using the “Launch Instance button on the upper right. 
-- In the “Source” section select the base image you wish to use. This document will assume Ubuntu 20.04, but other Linux types are also acceptable.
-- In the “Flavor” section select an appropriate VM type for your job requirements.
-- In the “Network” section select the network appropriate to your project.
-- In the “Key Pair” section select the ssh key pair you wish to use to access your VM. If you haven’t already added a key pair, you can do so using either the “Create Key Pair” or “Import Key Pair” buttons at the top of the window.
+- Login to the CANFAR Arbutus and navigate to the __Instances__ section. 
+- Launch a new VM instance using the __Launch Instance__ button on the upper right. 
+- In the __Source__ section select the base image you wish to use. This document will assume Ubuntu 20.04, but other Linux types are also acceptable.
+- In the __Flavor__ section select an appropriate VM type for your job requirements.
+- In the __Network__ section select the network appropriate to your project.
+- In the __Key Pair__ section select the ssh key pair you wish to use to access your VM. If you haven’t already added a key pair, you can do so using either the __Create Key Pair__ or __Import Key Pair__ buttons at the top of the window.
 - Review the other available options to ensure all is as you want.
-- Launch your instance using the “Launch Instance” button on the lower right.
-- Once the instance is running, assign it a Floating IP using the dropdown menu under the “Actions” column.
+- Launch your instance using the __Launch Instance__ button on the lower right.
+- Once the instance is running, assign it a Floating IP using the dropdown menu under the __Actions__ column.
 
 ### Configuring your VM:
 
 - SSH into your running instance using the key pair your selected.
-- Update your VM as required. For ubuntu run sudo apt-get update
-- Install the HTCondor package. This is essential for the condor server and CSV2 to communicate with your future jobs. For ubuntu it can be installed with: sudo apt-get install -y htcondor
+- Update your VM as required. For ubuntu run `sudo apt-get update`
+- Install the HTCondor package. This is essential for the condor server and CSV2 to communicate with your future jobs. For ubuntu it can be installed with: `sudo apt-get install -y htcondor`
 - Configure the VM to run your job as required. Make sure the job actually runs on the VM before continuing to the batch submission steps. You’ll save yourself a lot of headaches if you do this.
 - When you are satisfied your job runs on the VM, create a snapshot of the running instance using the “Create Snapshot” option from the dropdown menu in the Actions column in Openstack. Give the snapshot a unique name. This is very important as CSV2 relies on your VM image having a unique name to correctly select it. 
 
