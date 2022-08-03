@@ -17,7 +17,7 @@ Your request will be reviewed and you will be contacted by the CANFAR team which
 
 - Prepare a VM Image on CANFAR Arbutus and create a snapshot with a unique name
 - Connect to condor.canfar.net via ssh and prepare a job submission file based on the example included in your home folder.
-- Submit your jobs using the command canfar_submit myjob.sub
+- Submit your jobs using the command `canfar_submit myjob.sub`
 
 Now let’s go through these steps in detail:
 
