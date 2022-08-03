@@ -53,7 +53,7 @@ Now let’s go through these steps in detail:
 
 `request_cpus = 1  
 request_memory = 1000  
-request_disk = 1000  ``
+request_disk = 1000  `
 - These are the resources required to run your job. By default the memory is given in Kb and the disk space in Mb.
 
 `should_transfer_files = yes`
