@@ -41,7 +41,6 @@ Now let’s go through these steps in detail:
 - Install the HTCondor package. This is essential for the condor server and CSV2 to communicate with your future jobs. For ubuntu it can be installed with: sudo apt-get install -y htcondor
 - Configure the VM to run your job as required. Make sure the job actually runs on the VM before continuing to the batch submission steps. You’ll save yourself a lot of headaches if you do this.
 - When you are satisfied your job runs on the VM, create a snapshot of the running instance using the “Create Snapshot” option from the dropdown menu in the Actions column in Openstack. Give the snapshot a unique name. This is very important as CSV2 relies on your VM image having a unique name to correctly select it. 
-- 
 
 ## Prepare your batch submission file:
 
@@ -52,9 +51,9 @@ Now let’s go through these steps in detail:
 `+VMImage = "canfar-rocky-8"`
 - This should be the name of the VM snapshot you created previously.
 
-`request_cpus = 1`
-`request_memory = 1000`
-`request_disk = 1000`
+`request_cpus = 1
+request_memory = 1000
+request_disk = 1000`
 - These are the resources required to run your job. By default the memory is given in Kb and the disk space in Mb.
 
 `should_transfer_files = yes`
