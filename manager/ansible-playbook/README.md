@@ -37,7 +37,7 @@ Now let’s go through these steps in detail:
 ### Configuring your VM:
 
 - SSH into your running instance using the key pair your selected.
-- Update your VM to as required. For ubuntu run sudo apt-get update
+- Update your VM as required. For ubuntu run sudo apt-get update
 - Install the HTCondor package. This is essential for the condor server and CSV2 to communicate with your future jobs. For ubuntu it can be installed with: sudo apt-get install -y htcondor
 - Configure the VM to run your job as required. Make sure the job actually runs on the VM before continuing to the batch submission steps. You’ll save yourself a lot of headaches if you do this.
 - When you are satisfied your job runs on the VM, create a snapshot of the running instance using the “Create Snapshot” option from the dropdown menu in the Actions column in Openstack. Give the snapshot a unique name. This is very important as CSV2 relies on your VM image having a unique name to correctly select it. 
