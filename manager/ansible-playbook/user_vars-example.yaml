@@ -5,4 +5,4 @@ batch_users:
     pub_key: 'ssh-rsa public key for user-one'
 
   - name: user-two
-    pub_key: 'ssh-rsa public key for user-two
+    pub_key: 'ssh-rsa public key for user-two'
