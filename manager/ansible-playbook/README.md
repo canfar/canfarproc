@@ -80,20 +80,18 @@ Now let’s go through these steps in detail:
 You may include other condor parameters as you see fit to run your job. A complete list of options can be found here: https://htcondor.readthedocs.io/en/latest/users-manual/submitting-a-job.html
 
 Once your submission file is prepared, ensure your executable file is in the same directory as the submission file, and submit your job using:
-  canfar_submit yourjob.sub
+`canfar_submit yourjob.sub`
 
 The canfar_submit command is a wrapper script which reads your submission file and checks its validity and then adds some extra parameters needed by condor. It then calls the condor_submit command. The script also interacts with CSV2 and transfers your image snapshot to the batch processing clouds. 
 
 ## Monitoring your jobs:
 
-Once your jobs are submitted you can check their status using several different methods.
+Once your jobs are submitted you can check their status using several different methods. On the condor submission host you can execute the following useful commands:
 
-On the condor submission host you can execute the following useful commands:
-
-condor_status
+`condor_status`
 - This will show your running jobs in table format. If your jobs are all completed or failed to run, then this will return nothing. This command is a good place to start.
 
-condor_q -better-analyze
+`condor_q -better-analyze`
 - This command will give you detailed information about your submitted jobs, including those that failed. If your jobs fail to start, look carefully at the output of this command and it will usually tell you the problem.
 
 You can also view the status of CSV2 using the publically available dashboard. This will give you a global view of the system which includes data on all jobs which are running, including from other users: https://csv2-canfar.heprc.uvic.ca/cloud/status/?canfar
